@@ -15,6 +15,7 @@
 		"@emotion/styled": "latest",
 		"@mui/icons-material": "latest",
 		"@mui/material": "latest",
+		"@tanstack/react-query": "latest",
 		"@vitejs/plugin-react": "latest",
 		"react": "latest",
 		"react-dom": "latest",
