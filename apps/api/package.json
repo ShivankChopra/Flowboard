@@ -19,6 +19,8 @@
 		"@nestjs/platform-express": "latest",
 		"@prisma/adapter-pg": "latest",
 		"@prisma/client": "latest",
+		"class-transformer": "latest",
+		"class-validator": "latest",
 		"reflect-metadata": "latest",
 		"rxjs": "latest"
 	},
