@@ -7,6 +7,18 @@ export type User = {
 export type ContainerType = "workspace" | "space" | "folder" | "list";
 export type ContainerVisibility = "public" | "private";
 
+export type Container = {
+	id: string;
+	name: string;
+	type: ContainerType;
+	parentId: string | null;
+	position: number;
+	visibility: ContainerVisibility;
+	isArchived: boolean;
+	createdAt: string;
+	updatedAt: string;
+};
+
 export type ContainerTreeNode = {
 	id: string;
 	name: string;
@@ -16,6 +28,17 @@ export type ContainerTreeNode = {
 	visibility: ContainerVisibility;
 	isArchived: boolean;
 	children: ContainerTreeNode[];
+};
+
+export type GrantMode = "allow" | "deny";
+
+export type Grant = {
+	id: string;
+	resourceId: string;
+	userId: string;
+	mode: GrantMode;
+	createdAt: string;
+	updatedAt: string;
 };
 
 export type Status = {
@@ -30,6 +53,8 @@ export type Status = {
 	createdAt: string;
 	updatedAt: string;
 };
+
+export type StatusCategory = "todo" | "in_progress" | "done";
 
 export type TaskPriority = "urgent" | "high" | "normal" | "low" | "none";
 
@@ -69,6 +94,34 @@ export type TaskPayload = {
 	dueDate?: string | null;
 };
 
+export type CreateContainerPayload = {
+	name: string;
+	type: Exclude<ContainerType, "workspace">;
+	parentId: string;
+	visibility?: ContainerVisibility;
+};
+
+export type UpdateContainerPayload = {
+	name?: string;
+	visibility?: ContainerVisibility;
+};
+
+export type CreateStatusPayload = {
+	listId: string;
+	key: string;
+	name: string;
+	category: StatusCategory;
+	color: string;
+	position?: number;
+};
+
+export type UpdateStatusPayload = {
+	name?: string;
+	category?: StatusCategory;
+	color?: string;
+	position?: number;
+};
+
 type ApiErrorResponse = {
 	code?: string;
 	message?: string | string[];
@@ -93,7 +146,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000"
 type RequestOptions = {
 	userId: string;
 	signal?: AbortSignal;
-	method?: "GET" | "POST" | "PATCH" | "DELETE";
+	method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 	body?: unknown;
 };
 
@@ -148,9 +201,89 @@ export function listUsers(userId: string, signal?: AbortSignal): Promise<User[]>
 
 export function getContainerTree(
 	userId: string,
-	signal?: AbortSignal
+	signal?: AbortSignal,
+	includeArchived = false
 ): Promise<ContainerTreeNode[]> {
-	return requestJson<ContainerTreeNode[]>("/containers/tree", { userId, signal });
+	const params = includeArchived ? "?includeArchived=true" : "";
+
+	return requestJson<ContainerTreeNode[]>(`/containers/tree${params}`, { userId, signal });
+}
+
+export function createContainer(
+	userId: string,
+	payload: CreateContainerPayload
+): Promise<Container> {
+	return requestJson<Container>("/containers", {
+		userId,
+		method: "POST",
+		body: payload
+	});
+}
+
+export function updateContainer(
+	userId: string,
+	containerId: string,
+	payload: UpdateContainerPayload
+): Promise<Container> {
+	return requestJson<Container>(`/containers/${containerId}`, {
+		userId,
+		method: "PATCH",
+		body: payload
+	});
+}
+
+export function archiveContainer(
+	userId: string,
+	containerId: string,
+	isArchived: boolean
+): Promise<Container> {
+	return requestJson<Container>(`/containers/${containerId}/archive`, {
+		userId,
+		method: "PATCH",
+		body: { isArchived }
+	});
+}
+
+export function deleteContainer(userId: string, containerId: string): Promise<void> {
+	return requestJson<void>(`/containers/${containerId}`, {
+		userId,
+		method: "DELETE"
+	});
+}
+
+export function listGrants(
+	userId: string,
+	containerId: string,
+	signal?: AbortSignal
+): Promise<Grant[]> {
+	return requestJson<Grant[]>(`/containers/${containerId}/grants`, {
+		userId,
+		signal
+	});
+}
+
+export function upsertGrant(
+	userId: string,
+	containerId: string,
+	targetUserId: string,
+	mode: GrantMode
+): Promise<Grant> {
+	return requestJson<Grant>(`/containers/${containerId}/grants/${targetUserId}`, {
+		userId,
+		method: "PUT",
+		body: { mode }
+	});
+}
+
+export function deleteGrant(
+	userId: string,
+	containerId: string,
+	targetUserId: string
+): Promise<void> {
+	return requestJson<void>(`/containers/${containerId}/grants/${targetUserId}`, {
+		userId,
+		method: "DELETE"
+	});
 }
 
 export function listStatuses(
@@ -161,6 +294,36 @@ export function listStatuses(
 	return requestJson<Status[]>(`/statuses?listId=${encodeURIComponent(listId)}`, {
 		userId,
 		signal
+	});
+}
+
+export function createStatus(
+	userId: string,
+	payload: CreateStatusPayload
+): Promise<Status> {
+	return requestJson<Status>("/statuses", {
+		userId,
+		method: "POST",
+		body: payload
+	});
+}
+
+export function updateStatus(
+	userId: string,
+	statusId: string,
+	payload: UpdateStatusPayload
+): Promise<Status> {
+	return requestJson<Status>(`/statuses/${statusId}`, {
+		userId,
+		method: "PATCH",
+		body: payload
+	});
+}
+
+export function deleteStatus(userId: string, statusId: string): Promise<void> {
+	return requestJson<void>(`/statuses/${statusId}`, {
+		userId,
+		method: "DELETE"
 	});
 }
 

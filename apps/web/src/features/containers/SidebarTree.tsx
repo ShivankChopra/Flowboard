@@ -3,6 +3,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import WorkspacesOutlinedIcon from "@mui/icons-material/WorkspacesOutlined";
@@ -12,6 +13,7 @@ import {
 	Chip,
 	CircularProgress,
 	Collapse,
+	IconButton,
 	List,
 	ListItemButton,
 	ListItemIcon,
@@ -20,10 +22,12 @@ import {
 	Tooltip,
 	Typography
 } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { ContainerTreeNode, ContainerType } from "../../api/client";
+import { listUsers, type ContainerTreeNode, type ContainerType } from "../../api/client";
 import { useAppUi } from "../../state/app-ui-context";
+import { ContainerAdminDialog } from "./ContainerAdminDialog";
 import { countLists, countPrivateNodes, flattenTree, getExpandableIds } from "./tree-utils";
 import { useContainerTreeQuery } from "./use-container-tree-query";
 
@@ -37,7 +41,15 @@ const typeIcon: Record<ContainerType, ReactNode> = {
 export function SidebarTree() {
 	const { selectedUserId, selectedListId, setSelectedListId } = useAppUi();
 	const { data: tree = [], isError, isLoading, error } = useContainerTreeQuery(selectedUserId);
+	const { data: users = [] } = useQuery({
+		queryKey: ["users", selectedUserId],
+		queryFn: ({ signal }) => listUsers(selectedUserId, signal),
+		staleTime: 60_000
+	});
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+	const [adminContainer, setAdminContainer] = useState<ContainerTreeNode | null>(null);
+	const selectedUser = users.find((user) => user.id === selectedUserId);
+	const isAdmin = selectedUser?.role === "admin";
 
 	useEffect(() => {
 		setExpandedIds(new Set(getExpandableIds(tree)));
@@ -112,6 +124,8 @@ export function SidebarTree() {
 						node={node}
 						depth={0}
 						expandedIds={expandedIds}
+						isAdmin={isAdmin}
+						onOpenAdmin={setAdminContainer}
 						onToggle={(nodeId) => {
 							setExpandedIds((current) => {
 								const next = new Set(current);
@@ -128,6 +142,13 @@ export function SidebarTree() {
 					/>
 				))}
 			</List>
+			<ContainerAdminDialog
+				open={Boolean(adminContainer)}
+				container={adminContainer}
+				currentUserId={selectedUserId}
+				users={users}
+				onClose={() => setAdminContainer(null)}
+			/>
 		</Stack>
 	);
 }
@@ -136,10 +157,19 @@ type ContainerNodeProps = {
 	node: ContainerTreeNode;
 	depth: number;
 	expandedIds: Set<string>;
+	isAdmin: boolean;
+	onOpenAdmin: (node: ContainerTreeNode) => void;
 	onToggle: (nodeId: string) => void;
 };
 
-function ContainerNode({ node, depth, expandedIds, onToggle }: ContainerNodeProps) {
+function ContainerNode({
+	node,
+	depth,
+	expandedIds,
+	isAdmin,
+	onOpenAdmin,
+	onToggle
+}: ContainerNodeProps) {
 	const { selectedListId, setSelectedListId } = useAppUi();
 	const hasChildren = node.children.length > 0;
 	const expanded = expandedIds.has(node.id);
@@ -209,6 +239,21 @@ function ContainerNode({ node, depth, expandedIds, onToggle }: ContainerNodeProp
 						<LockOutlinedIcon color="action" sx={{ fontSize: 14, ml: 1 }} />
 					</Tooltip>
 				) : null}
+				{isAdmin ? (
+					<Tooltip title={`Admin settings for ${node.name}`}>
+						<IconButton
+							edge="end"
+							size="small"
+							onClick={(event) => {
+								event.stopPropagation();
+								onOpenAdmin(node);
+							}}
+							sx={{ ml: 0.5 }}
+						>
+							<SettingsOutlinedIcon sx={{ fontSize: 16 }} />
+						</IconButton>
+					</Tooltip>
+				) : null}
 			</ListItemButton>
 			{hasChildren ? (
 				<Collapse in={expanded} timeout="auto" unmountOnExit>
@@ -219,6 +264,8 @@ function ContainerNode({ node, depth, expandedIds, onToggle }: ContainerNodeProp
 								node={child}
 								depth={depth + 1}
 								expandedIds={expandedIds}
+								isAdmin={isAdmin}
+								onOpenAdmin={onOpenAdmin}
 								onToggle={onToggle}
 							/>
 						))}
