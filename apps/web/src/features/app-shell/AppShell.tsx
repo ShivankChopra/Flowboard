@@ -4,7 +4,6 @@ import {
 	Box,
 	Chip,
 	Divider,
-	Paper,
 	Stack,
 	Toolbar,
 	Typography,
@@ -14,6 +13,7 @@ import {
 import { SidebarTree } from "../containers/SidebarTree";
 import { findContainer } from "../containers/tree-utils";
 import { useContainerTreeQuery } from "../containers/use-container-tree-query";
+import { ListWorkspace } from "../lists/ListWorkspace";
 import { UserSwitcher } from "../users/UserSwitcher";
 import { useAppUi } from "../../state/app-ui-context";
 
@@ -90,7 +90,7 @@ export function AppShell() {
 							</Typography>
 							<Typography variant="body2" color="text.secondary" noWrap>
 								{selectedList
-									? "Selected list ready for Phase 7 task workflows"
+									? "Tasks, statuses, and board order for the selected list"
 									: "Select a list in the sidebar"}
 							</Typography>
 						</Box>
@@ -116,33 +116,33 @@ export function AppShell() {
 					</Stack>
 				</Toolbar>
 				<Box sx={{ p: { xs: 2, md: 3 } }}>
-					<Paper
-						variant="outlined"
-						sx={{
-							alignItems: "center",
-							bgcolor: "background.paper",
-							display: "flex",
-							minHeight: 280,
-							justifyContent: "center",
-							p: 3,
-							textAlign: "center"
-						}}
-					>
-						<Stack alignItems="center" gap={1.25} sx={{ maxWidth: 520 }}>
-							<ViewKanbanOutlinedIcon color="primary" sx={{ fontSize: 32 }} />
-							<Typography variant="h6">
-								{selectedList ? selectedList.name : "No list selected"}
-							</Typography>
-							<Typography color="text.secondary">
-								{selectedList
-									? "The selected-list state is wired. Task fetching, kanban columns, and drawers begin in Phase 7."
-									: "Choose a visible list from the permission-filtered sidebar to set the active workspace context."}
-							</Typography>
-						</Stack>
-					</Paper>
+					{selectedList ? (
+						<ListWorkspace list={selectedList} />
+					) : (
+						<Box
+							sx={{
+								alignItems: "center",
+								border: "1px dashed",
+								borderColor: "divider",
+								borderRadius: 1,
+								display: "flex",
+								minHeight: 280,
+								justifyContent: "center",
+								p: 3,
+								textAlign: "center"
+							}}
+						>
+							<Stack alignItems="center" gap={1.25} sx={{ maxWidth: 520 }}>
+								<ViewKanbanOutlinedIcon color="primary" sx={{ fontSize: 32 }} />
+								<Typography variant="h6">No list selected</Typography>
+								<Typography color="text.secondary">
+									Choose a visible list from the permission-filtered sidebar to set the active workspace context.
+								</Typography>
+							</Stack>
+						</Box>
+					)}
 				</Box>
 			</Box>
 		</Box>
 	);
 }
-
