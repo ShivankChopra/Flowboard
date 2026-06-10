@@ -1,38 +1,43 @@
 {
-  "name": "@flowboard/api",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "build": "nest build",
-    "start": "node dist/main.js",
-    "start:dev": "nest start --watch",
-    "lint": "eslint \"src/**/*.ts\"",
-    "typecheck": "tsc --noEmit",
-    "test": "jest --passWithNoTests",
-    "prisma:migrate": "echo \"Prisma migration is added in Phase 1\"",
-    "prisma:seed": "echo \"Prisma seed is added in Phase 1\""
-  },
-  "dependencies": {
-    "@nestjs/common": "latest",
-    "@nestjs/core": "latest",
-    "@nestjs/platform-express": "latest",
-    "reflect-metadata": "latest",
-    "rxjs": "latest"
-  },
-  "devDependencies": {
-    "@nestjs/cli": "latest",
-    "@nestjs/schematics": "latest",
-    "@nestjs/testing": "latest",
-    "@types/jest": "latest",
-    "@types/node": "latest",
-    "@typescript-eslint/eslint-plugin": "latest",
-    "@typescript-eslint/parser": "latest",
-    "eslint": "latest",
-    "jest": "latest",
-    "source-map-support": "latest",
-    "ts-jest": "latest",
-    "ts-loader": "latest",
-    "ts-node": "latest",
-    "typescript": "latest"
-  }
+	"name": "@flowboard/api",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"build": "nest build",
+		"start": "node dist/main.js",
+		"start:dev": "nest start --watch",
+		"lint": "eslint \"src/**/*.ts\"",
+		"typecheck": "tsc --noEmit",
+		"test": "jest --passWithNoTests",
+		"prisma:generate": "prisma generate",
+		"prisma:migrate": "prisma migrate dev",
+		"prisma:seed": "prisma db seed"
+	},
+	"dependencies": {
+		"@nestjs/common": "latest",
+		"@nestjs/core": "latest",
+		"@nestjs/platform-express": "latest",
+		"@prisma/adapter-pg": "latest",
+		"@prisma/client": "latest",
+		"reflect-metadata": "latest",
+		"rxjs": "latest"
+	},
+	"devDependencies": {
+		"@nestjs/cli": "latest",
+		"@nestjs/schematics": "latest",
+		"@nestjs/testing": "latest",
+		"@types/jest": "latest",
+		"@types/node": "latest",
+		"@typescript-eslint/eslint-plugin": "latest",
+		"@typescript-eslint/parser": "latest",
+		"eslint": "latest",
+		"jest": "latest",
+		"prisma": "latest",
+		"source-map-support": "latest",
+		"ts-jest": "latest",
+		"ts-loader": "latest",
+		"ts-node": "latest",
+		"tsx": "latest",
+		"typescript": "latest"
+	}
 }

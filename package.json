@@ -1,24 +1,27 @@
 {
-  "name": "flowboard",
-  "version": "0.1.0",
-  "private": true,
-  "workspaces": [
-    "apps/api",
-    "apps/web",
-    "packages/*"
-  ],
-  "scripts": {
-    "dev": "docker compose up --build",
-    "dev:api": "npm --workspace apps/api run start:dev",
-    "dev:web": "npm --workspace apps/web run dev",
-    "db:migrate": "npm --workspace apps/api run prisma:migrate",
-    "db:seed": "npm --workspace apps/api run prisma:seed",
-    "test:api": "npm --workspace apps/api run test",
-    "lint": "npm --workspaces run lint",
-    "typecheck": "npm --workspaces run typecheck"
-  },
-  "engines": {
-    "node": ">=22.0.0",
-    "npm": ">=10.0.0"
-  }
+	"name": "flowboard",
+	"version": "0.1.0",
+	"private": true,
+	"workspaces": [
+		"apps/api",
+		"apps/web",
+		"packages/*"
+	],
+	"scripts": {
+		"dev": "docker compose up --build",
+		"dev:api": "npm --workspace apps/api run start:dev",
+		"dev:web": "npm --workspace apps/web run dev",
+		"db:migrate": "npm --workspace apps/api run prisma:migrate",
+		"db:seed": "npm --workspace apps/api run prisma:seed",
+		"prisma:migrate": "npm --workspace apps/api run prisma:migrate",
+		"prisma:seed": "npm --workspace apps/api run prisma:seed",
+		"prisma:generate": "npm --workspace apps/api run prisma:generate",
+		"test:api": "npm --workspace apps/api run test",
+		"lint": "npm --workspaces run lint",
+		"typecheck": "npm --workspaces run typecheck"
+	},
+	"engines": {
+		"node": ">=22.0.0",
+		"npm": ">=10.0.0"
+	}
 }

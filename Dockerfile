@@ -6,6 +6,8 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 RUN npm install
 COPY . .
+ARG DATABASE_URL
+RUN DATABASE_URL="$DATABASE_URL" npm --workspace apps/api run prisma:generate
 
 FROM base AS api-dev
 EXPOSE 3000
