@@ -33,6 +33,11 @@ export class TasksService {
 		query: ListTasksQuery
 	): Promise<PaginatedTasksResponse> {
 		await this.permissions.assertCanAccessList(user, query.listId);
+		const searchQuery = this.normalizedSearchQuery(query.q);
+
+		if (searchQuery) {
+			return this.searchTasks(query, searchQuery);
+		}
 
 		const [total, tasks] = await Promise.all([
 			this.prisma.task.count({
@@ -53,6 +58,60 @@ export class TasksService {
 				limit: query.limit,
 				offset: query.offset,
 				total
+			}
+		};
+	}
+
+	private async searchTasks(
+		query: ListTasksQuery,
+		searchQuery: string
+	): Promise<PaginatedTasksResponse> {
+		const [countResult, rows] = await Promise.all([
+			this.prisma.$queryRaw<Array<{ count: bigint }>>`
+				SELECT COUNT(*)::bigint AS count
+				FROM "tasks"
+				WHERE "primaryListId" = CAST(${query.listId} AS uuid)
+					AND ${this.rawSearchPredicate(searchQuery)}
+			`,
+			this.prisma.$queryRaw<Array<{ id: string }>>`
+				SELECT task."id"
+				FROM "tasks" task
+				INNER JOIN "statuses" status ON status."id" = task."statusId"
+				WHERE task."primaryListId" = CAST(${query.listId} AS uuid)
+					AND ${this.rawSearchPredicate(searchQuery, "task")}
+				ORDER BY ${this.rawOrderByForQuery(query)}
+				LIMIT ${query.limit}
+				OFFSET ${query.offset}
+			`
+		]);
+		const ids = rows.map((row) => row.id);
+
+		if (ids.length === 0) {
+			return {
+				data: [],
+				pagination: {
+					limit: query.limit,
+					offset: query.offset,
+					total: Number(countResult[0]?.count ?? 0)
+				}
+			};
+		}
+
+		const tasks = await this.prisma.task.findMany({
+			where: { id: { in: ids } },
+			include: { assignees: true }
+		});
+		const taskById = new Map(tasks.map((task) => [task.id, task]));
+
+		return {
+			data: ids.flatMap((id) => {
+				const task = taskById.get(id);
+				return task ? [toTaskDto(task)] : [];
+			}),
+			pagination: {
+				limit: query.limit,
+				offset: query.offset,
+				total: Number(countResult[0]?.count ?? 0)
 			}
 		};
 	}
@@ -248,6 +307,42 @@ export class TasksService {
 			{ status: { position: "asc" } },
 			{ position: "asc" }
 		];
+	}
+
+	private rawOrderByForQuery(query: ListTasksQuery): Prisma.Sql {
+		const direction = query.direction === "desc" ? Prisma.sql`DESC` : Prisma.sql`ASC`;
+
+		if (query.sort === TaskSort.dueDate) {
+			return Prisma.sql`task."dueDate" ${direction} NULLS LAST, task."position" ASC, task."id" ASC`;
+		}
+
+		if (query.sort === TaskSort.priority) {
+			return Prisma.sql`task."priority" ${direction}, status."position" ASC, task."position" ASC, task."id" ASC`;
+		}
+
+		return Prisma.sql`status."position" ASC, task."position" ASC, task."id" ASC`;
+	}
+
+	private rawSearchPredicate(searchQuery: string, tableAlias?: string): Prisma.Sql {
+		const titleColumn = tableAlias
+			? Prisma.raw(`${tableAlias}."title"`)
+			: Prisma.sql`"title"`;
+		const descriptionColumn = tableAlias
+			? Prisma.raw(`${tableAlias}."description"`)
+			: Prisma.sql`"description"`;
+		const likeQuery = `%${searchQuery}%`;
+
+		return Prisma.sql`(
+			to_tsvector('english', coalesce(${titleColumn}, '') || ' ' || coalesce(${descriptionColumn}, ''))
+				@@ plainto_tsquery('english', ${searchQuery})
+			OR ${titleColumn} ILIKE ${likeQuery}
+			OR ${descriptionColumn} ILIKE ${likeQuery}
+		)`;
+	}
+
+	private normalizedSearchQuery(query?: string): string | null {
+		const trimmed = query?.trim();
+		return trimmed ? trimmed : null;
 	}
 
 	private async resolveTargetStatus(

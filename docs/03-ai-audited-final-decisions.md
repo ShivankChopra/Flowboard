@@ -613,8 +613,7 @@ Trade-offs:
 
 - README should explicitly explain what was intentionally deferred.
 - Trade-offs should be framed as scoped MVP decisions, not unfinished accidents.
-- Week-2 improvements should include production auth, broader tests, real-time updates, deeper permission tooling, and deployment polish if not implemented.
-- Activity feed should be listed as a week-2 improvement only if the selected stretch goal is not implemented.
+- Week-2 improvements should include production auth, broader tests, real-time updates, deeper permission tooling, activity feed, and deployment polish if not implemented.
 
 Demo:
 
@@ -634,7 +633,7 @@ Stretch goals will only be attempted after the MVP is stable.
 The assignment asks to pick at most two nice-to-have goals. Flowboard's selected stretch goals are:
 
 1. Dockerized deploy to Fly.io, Railway, or Render.
-2. Activity feed.
+2. Full-text search on task title/description.
 
 Dockerized deploy:
 
@@ -642,16 +641,18 @@ Dockerized deploy:
 - Demonstrates production-oriented packaging and environment handling.
 - Should not block core local development or the required demo.
 
-Activity feed:
+Full-text search:
 
-- Improves product usability by making task changes visible.
-- Can capture actions such as task creation, status changes, assignment changes, and deletion.
-- Should be simple and scoped, not a full audit-log system.
+- Improves product usability in the existing dense list view without adding a new major product surface.
+- Searches task title and description within the currently selected list.
+- Must remain permission-aware by reusing the existing list-access checks before returning task results.
+- Should use PostgreSQL full-text search with a GIN index if practical.
+- Does not require dedicated automated tests for MVP; manual verification is acceptable after the core backend tests pass.
 
 Non-committed opportunistic improvements:
 
 - OpenAPI/Swagger spec.
-- Full-text search on task title/description.
+- Activity feed.
 
 These opportunistic improvements are not official selected stretch goals. They may be implemented only if the MVP and the two selected stretch goals are complete. If not implemented, they should be listed as week-2 enhancements.
 
@@ -672,6 +673,6 @@ Deferred items:
 - Complex enterprise permission inheritance UI.
 - Subtasks, unless Phase 2 is completed early enough to add them safely.
 - OpenAPI/Swagger spec, unless there is time after MVP and selected stretch goals.
-- Full-text search on task title/description, unless there is time after MVP and selected stretch goals.
+- Activity feed, unless there is time after MVP and selected stretch goals.
 
 These items should be described in README as intentional scope decisions or week-2 enhancements rather than incomplete MVP requirements.

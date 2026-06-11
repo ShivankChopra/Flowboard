@@ -31,6 +31,8 @@ Included in the planned MVP:
 - `@hello-pangea/dnd` for kanban drag-and-drop.
 - Markdown rendering for task descriptions using `react-markdown`.
 - Focused Jest backend tests for permission and task-access behavior.
+- Dockerized deployment to Fly.io, Railway, or Render as a selected stretch goal.
+- Full-text task search in the selected list view as a selected stretch goal.
 
 Deferred unless a later decision explicitly adds them:
 
@@ -40,10 +42,8 @@ Deferred unless a later decision explicitly adds them:
 - Subtasks.
 - Real-time updates.
 - OpenAPI/Swagger.
-- Full-text search.
 - Frontend E2E tests.
 - Activity feed.
-- Production deployment.
 
 ## 3. Repository And Tooling
 

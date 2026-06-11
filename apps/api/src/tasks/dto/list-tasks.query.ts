@@ -1,5 +1,15 @@
 import { Transform } from "class-transformer";
-import { IsEnum, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from "class-validator";
+import {
+	IsEnum,
+	IsIn,
+	IsInt,
+	IsOptional,
+	IsString,
+	IsUUID,
+	Max,
+	MaxLength,
+	Min
+} from "class-validator";
 
 export enum TaskSort {
 	position = "position",
@@ -31,4 +41,10 @@ export class ListTasksQuery {
 	@IsOptional()
 	@IsIn(["asc", "desc"])
 	direction: "asc" | "desc" = "asc";
+
+	@IsOptional()
+	@Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+	@IsString()
+	@MaxLength(200)
+	q?: string;
 }

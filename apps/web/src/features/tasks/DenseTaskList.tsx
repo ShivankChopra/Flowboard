@@ -14,6 +14,7 @@ import {
 	TableBody,
 	TableCell,
 	TableHead,
+	TablePagination,
 	TableRow,
 	TableSortLabel,
 	Tooltip,
@@ -35,7 +36,12 @@ type DenseTaskListProps = {
 	users: User[];
 	sort: TaskSort;
 	direction: SortDirection;
+	count: number;
+	page: number;
+	rowsPerPage: number;
 	onSort: (sort: TaskSort) => void;
+	onPageChange: (page: number) => void;
+	onRowsPerPageChange: (rowsPerPage: number) => void;
 	onEditTask: (task: Task) => void;
 };
 
@@ -45,7 +51,12 @@ export function DenseTaskList({
 	users,
 	sort,
 	direction,
+	count,
+	page,
+	rowsPerPage,
 	onSort,
+	onPageChange,
+	onRowsPerPageChange,
 	onEditTask
 }: DenseTaskListProps) {
 	const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -274,6 +285,22 @@ export function DenseTaskList({
 					</TableBody>
 				</Table>
 			</Box>
+			<TablePagination
+				component="div"
+				count={count}
+				page={page}
+				rowsPerPage={rowsPerPage}
+				rowsPerPageOptions={[5, 10, 25, 50]}
+				onPageChange={(_, nextPage) => onPageChange(nextPage)}
+				onRowsPerPageChange={(event) =>
+					onRowsPerPageChange(Number(event.target.value))
+				}
+				sx={{
+					borderTop: "1px solid",
+					borderColor: "divider",
+					flexShrink: 0
+				}}
+			/>
 		</Paper>
 	);
 }

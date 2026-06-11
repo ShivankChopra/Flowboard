@@ -1,6 +1,7 @@
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import FormatListBulletedOutlinedIcon from "@mui/icons-material/FormatListBulletedOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ViewKanbanOutlinedIcon from "@mui/icons-material/ViewKanbanOutlined";
 import {
 	Alert,
@@ -8,7 +9,9 @@ import {
 	Button,
 	CircularProgress,
 	Divider,
+	InputAdornment,
 	Stack,
+	TextField,
 	ToggleButton,
 	ToggleButtonGroup,
 	Typography,
@@ -51,17 +54,40 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 	const [view, setView] = useState<"Board" | "list">("list");
 	const [listSort, setListSort] = useState<TaskSort>("position");
 	const [listDirection, setListDirection] = useState<SortDirection>("asc");
+	const [listPage, setListPage] = useState(0);
+	const [listRowsPerPage, setListRowsPerPage] = useState(10);
+	const [taskSearch, setTaskSearch] = useState("");
+	const [debouncedTaskSearch, setDebouncedTaskSearch] = useState("");
 	const [drawerState, setDrawerState] = useState<DrawerState>({
 		mode: "closed",
 	});
 	const [mutationError, setMutationError] = useState<string | null>(null);
 	const taskSort = view === "list" ? listSort : "position";
 	const taskDirection = view === "list" ? listDirection : "asc";
+	const activeTaskSearch =
+		view === "list" ? debouncedTaskSearch.trim() : "";
+	const taskLimit = view === "list" ? listRowsPerPage : 100;
+	const taskOffset = view === "list" ? listPage * listRowsPerPage : 0;
 
 	useEffect(() => {
 		setDrawerState({ mode: "closed" });
 		setMutationError(null);
+		setListPage(0);
+		setTaskSearch("");
+		setDebouncedTaskSearch("");
 	}, [list.id, selectedUserId]);
+
+	useEffect(() => {
+		setListPage(0);
+	}, [activeTaskSearch, listDirection, listSort]);
+
+	useEffect(() => {
+		const timeoutId = window.setTimeout(() => {
+			setDebouncedTaskSearch(taskSearch);
+		}, 300);
+
+		return () => window.clearTimeout(timeoutId);
+	}, [taskSearch]);
 
 	const statusesQuery = useQuery({
 		queryKey: ["statuses", selectedUserId, list.id],
@@ -69,15 +95,26 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		staleTime: 20_000,
 	});
 	const tasksQuery = useQuery({
-		queryKey: ["tasks", selectedUserId, list.id, taskSort, taskDirection],
+		queryKey: [
+			"tasks",
+			selectedUserId,
+			list.id,
+			taskSort,
+			taskDirection,
+			taskLimit,
+			taskOffset,
+			activeTaskSearch,
+		],
 		queryFn: ({ signal }) =>
 			listTasks(
 				selectedUserId,
 				{
 					listId: list.id,
-					limit: 100,
+					limit: taskLimit,
+					offset: taskOffset,
 					sort: taskSort,
 					direction: taskDirection,
+					q: activeTaskSearch,
 				},
 				signal,
 			),
@@ -94,6 +131,8 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		[statusesQuery.data],
 	);
 	const tasks = tasksQuery.data?.data ?? [];
+	const taskTotal = tasksQuery.data?.pagination.total ?? tasks.length;
+	const hasTaskSearch = activeTaskSearch.length > 0;
 	const users = usersQuery.data ?? [];
 	const selectedTask =
 		drawerState.mode === "edit"
@@ -192,6 +231,16 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		reorderMutation.isPending ||
 		deleteMutation.isPending;
 	const isRefreshing = statusesQuery.isFetching || tasksQuery.isFetching;
+
+	useEffect(() => {
+		if (view !== "list" || taskTotal === 0 || listPage === 0) {
+			return;
+		}
+
+		if (listPage * listRowsPerPage >= taskTotal) {
+			setListPage(Math.max(0, Math.ceil(taskTotal / listRowsPerPage) - 1));
+		}
+	}, [listPage, listRowsPerPage, taskTotal, view]);
 
 	function handleSort(nextSort: TaskSort) {
 		if (nextSort === listSort) {
@@ -327,8 +376,27 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 				</Alert>
 			) : null}
 
+			{view === "list" ? (
+				<TextField
+					size="small"
+					value={taskSearch}
+					onChange={(event) => setTaskSearch(event.target.value)}
+					placeholder="Search tasks"
+					inputProps={{ "aria-label": "Search tasks" }}
+					InputProps={{
+						startAdornment: (
+							<InputAdornment position="start">
+								<SearchOutlinedIcon fontSize="small" />
+							</InputAdornment>
+						),
+					}}
+					sx={{ maxWidth: 360 }}
+				/>
+			) : null}
+
 			{tasks.length === 0 ? (
 				<EmptyTaskState
+					hasSearch={hasTaskSearch}
 					onCreate={() =>
 						setDrawerState({
 							mode: "create",
@@ -362,7 +430,15 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					users={users}
 					sort={listSort}
 					direction={listDirection}
+					count={taskTotal}
+					page={listPage}
+					rowsPerPage={listRowsPerPage}
 					onSort={handleSort}
+					onPageChange={setListPage}
+					onRowsPerPageChange={(rowsPerPage) => {
+						setListRowsPerPage(rowsPerPage);
+						setListPage(0);
+					}}
 					onEditTask={(task: Task) =>
 						setDrawerState({ mode: "edit", taskId: task.id })
 					}
@@ -372,7 +448,8 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 			<Divider />
 			<Typography variant="caption" color="text.secondary">
 				Showing {tasks.length} of{" "}
-				{tasksQuery.data?.pagination.total ?? tasks.length} tasks.
+				{taskTotal} tasks
+				{hasTaskSearch ? ` matching "${activeTaskSearch}"` : ""}.
 			</Typography>
 
 			<TaskDrawer
@@ -395,7 +472,13 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 	);
 }
 
-function EmptyTaskState({ onCreate }: { onCreate: () => void }) {
+function EmptyTaskState({
+	hasSearch,
+	onCreate,
+}: {
+	hasSearch: boolean;
+	onCreate: () => void;
+}) {
 	return (
 		<Box
 			sx={{
@@ -411,17 +494,23 @@ function EmptyTaskState({ onCreate }: { onCreate: () => void }) {
 			}}
 		>
 			<Stack alignItems="center" gap={1.25}>
-				<Typography variant="h6">No tasks yet</Typography>
-				<Typography color="text.secondary">
-					Create the first task in this list.
+				<Typography variant="h6">
+					{hasSearch ? "No matching tasks" : "No tasks yet"}
 				</Typography>
-				<Button
-					variant="contained"
-					startIcon={<AddCircleOutlineIcon />}
-					onClick={onCreate}
-				>
-					New task
-				</Button>
+				<Typography color="text.secondary">
+					{hasSearch
+						? "Try a different search term."
+						: "Create the first task in this list."}
+				</Typography>
+				{hasSearch ? null : (
+					<Button
+						variant="contained"
+						startIcon={<AddCircleOutlineIcon />}
+						onClick={onCreate}
+					>
+						New task
+					</Button>
+				)}
 			</Stack>
 		</Box>
 	);

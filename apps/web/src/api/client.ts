@@ -358,6 +358,7 @@ export function listTasks(
 		offset?: number;
 		sort?: TaskSort;
 		direction?: SortDirection;
+		q?: string;
 	},
 	signal?: AbortSignal
 ): Promise<PaginatedTasksResponse> {
@@ -368,6 +369,11 @@ export function listTasks(
 		sort: options.sort ?? "position",
 		direction: options.direction ?? "asc"
 	});
+	const searchQuery = options.q?.trim();
+
+	if (searchQuery) {
+		params.set("q", searchQuery);
+	}
 
 	return requestJson<PaginatedTasksResponse>(`/tasks?${params.toString()}`, {
 		userId,
