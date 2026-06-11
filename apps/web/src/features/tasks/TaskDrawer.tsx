@@ -164,7 +164,9 @@ export function TaskDrawer({
 			onClose={onClose}
 			PaperProps={{
 				sx: {
+					height: "100vh",
 					maxWidth: "100vw",
+					overflow: "hidden",
 					width: { xs: "100vw", sm: drawerWidth },
 				},
 			}}
@@ -185,7 +187,14 @@ export function TaskDrawer({
 					},
 				}}
 			/>
-			<Stack gap={2} sx={{ p: 2.5 }}>
+			<Stack
+				gap={2}
+				sx={{
+					height: "100%",
+					overflowY: "auto",
+					p: 2.5,
+				}}
+			>
 				<Box>
 					<Typography variant="h6">
 						{mode === "create" ? "Create task" : "Edit task"}

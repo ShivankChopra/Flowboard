@@ -64,7 +64,9 @@ export function AppShell() {
 				gridTemplateColumns: isWide
 					? `${sidebarWidth}px minmax(0, 1fr)`
 					: "1fr",
+				height: isWide ? "100vh" : "auto",
 				minHeight: "100vh",
+				overflow: isWide ? "hidden" : "visible",
 				background:
 					"linear-gradient(180deg, #fbfdff 0%, #f8fafc 48%, #f6f9fc 100%)",
 			}}
@@ -77,9 +79,13 @@ export function AppShell() {
 					borderColor: "divider",
 					borderRight: isWide ? "1px solid" : 0,
 					borderBottom: isWide ? 0 : "1px solid",
-					minHeight: isWide ? "100vh" : "auto",
+					display: "flex",
+					flexDirection: "column",
+					height: isWide ? "100vh" : "auto",
+					minHeight: 0,
 					p: 2,
 					position: "relative",
+					overflow: isWide ? "hidden" : "visible",
 				}}
 			>
 				<Box
@@ -98,7 +104,7 @@ export function AppShell() {
 						},
 					}}
 				/>
-				<Stack gap={2}>
+				<Stack gap={2} sx={{ flex: 1, minHeight: 0 }}>
 					<Box>
 						<Typography variant="h5" component="h1">
 							Flowboard
@@ -109,10 +115,22 @@ export function AppShell() {
 					</Box>
 					<UserSwitcher />
 					<Divider />
-					<SidebarTree />
+					<Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.5 }}>
+						<SidebarTree />
+					</Box>
 				</Stack>
 			</Box>
-			<Box component="main" sx={{ minWidth: 0 }}>
+			<Box
+				component="main"
+				sx={{
+					display: "flex",
+					flexDirection: "column",
+					height: isWide ? "100vh" : "auto",
+					minHeight: 0,
+					minWidth: 0,
+					overflow: isWide ? "hidden" : "visible",
+				}}
+			>
 				<Toolbar
 					disableGutters
 					sx={{
@@ -166,7 +184,15 @@ export function AppShell() {
 						) : null}
 					</Stack>
 				</Toolbar>
-				<Box sx={{ p: { xs: 2, md: 3 } }}>
+				<Box
+					sx={{
+						flex: 1,
+						minHeight: 0,
+						minWidth: 0,
+						overflow: "auto",
+						p: { xs: 2, md: 3 },
+					}}
+				>
 					{selectedList ? (
 						<ListWorkspace list={selectedList} />
 					) : (

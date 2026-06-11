@@ -249,7 +249,7 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 	}
 
 	return (
-		<Stack gap={2.5}>
+		<Stack gap={2.5} sx={{ minHeight: 0, minWidth: 0 }}>
 			<Stack
 				direction={{ xs: "column", md: "row" }}
 				alignItems={{ xs: "stretch", md: "center" }}

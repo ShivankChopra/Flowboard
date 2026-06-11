@@ -70,6 +70,10 @@ export function KanbanBoard({
 			),
 		[statuses, tasks],
 	);
+	const columnCount = Math.max(statuses.length, 1);
+	const boardMinWidth = `max(100%, ${
+		columnCount * 280 + Math.max(columnCount - 1, 0) * 16
+	}px)`;
 
 	function handleDrop(statusId: string, index: number) {
 		if (!dragging || isMutating) {
@@ -109,17 +113,19 @@ export function KanbanBoard({
 	}
 
 	return (
-		<Box
-			sx={{
-				display: "grid",
-				gap: 2,
-				gridTemplateColumns: {
-					xs: "1fr",
-					lg: `repeat(${Math.max(statuses.length, 1)}, minmax(260px, 1fr))`,
-				},
-				alignItems: "start",
-			}}
-		>
+		<Box sx={{ minWidth: 0, overflowX: "auto", pb: 0.5 }}>
+			<Box
+				sx={{
+					alignItems: "start",
+					display: "grid",
+					gap: 2,
+					gridTemplateColumns: {
+						xs: "1fr",
+						lg: `repeat(${columnCount}, minmax(280px, 1fr))`,
+					},
+					minWidth: { xs: "100%", lg: boardMinWidth },
+				}}
+			>
 			{statuses.map((status) => {
 				const columnTasks = tasksByStatus.get(status.id) ?? [];
 				const isColumnTarget = dropTarget?.statusId === status.id;
@@ -138,6 +144,9 @@ export function KanbanBoard({
 						onDrop={() => handleDrop(status.id, columnTasks.length)}
 						sx={{
 							bgcolor: "rgba(255, 255, 255, 0.72)",
+							display: "flex",
+							flexDirection: "column",
+							maxHeight: { xs: "none", md: "calc(100vh - 250px)" },
 							minHeight: 220,
 							overflow: "hidden",
 						}}
@@ -193,7 +202,14 @@ export function KanbanBoard({
 								</Button>
 							</Tooltip>
 						</Stack>
-						<Stack gap={1} sx={{ p: 1.25 }}>
+						<Stack
+							gap={1}
+							sx={{
+								minHeight: 0,
+								overflowY: { xs: "visible", md: "auto" },
+								p: 1.25,
+							}}
+						>
 							{columnTasks.map((task, index) => (
 								<Box
 									key={task.id}
@@ -281,6 +297,7 @@ export function KanbanBoard({
 					</Paper>
 				);
 			})}
+			</Box>
 		</Box>
 	);
 }

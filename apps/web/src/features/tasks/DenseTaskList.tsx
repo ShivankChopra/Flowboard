@@ -52,10 +52,27 @@ export function DenseTaskList({
 	const statusById = new Map(statuses.map((status) => [status.id, status]));
 
 	return (
-		<Paper variant="outlined" sx={{ overflow: "hidden" }}>
-			<Box sx={{ overflowX: "auto" }}>
+		<Paper
+			variant="outlined"
+			sx={{
+				display: "flex",
+				flexDirection: "column",
+				maxHeight: { xs: "none", md: "calc(100vh - 250px)" },
+				overflow: "hidden"
+			}}
+		>
+			<Box sx={{ minHeight: 0, overflow: "auto" }}>
 				<Table size="small" sx={{ minWidth: 760 }}>
-					<TableHead>
+					<TableHead
+						sx={{
+							"& th": {
+								bgcolor: "background.paper",
+								position: "sticky",
+								top: 0,
+								zIndex: 1
+							}
+						}}
+					>
 						<TableRow>
 							<TableCell>Task</TableCell>
 							<TableCell>Status</TableCell>
