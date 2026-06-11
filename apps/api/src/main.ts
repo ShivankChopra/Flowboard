@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { AppModule } from "./app.module";
 import { AppExceptionFilter } from "./common/errors/app-exception.filter";
 import { createValidationException } from "./common/validation/validation-exception.factory";
+import { DemoSeedService } from "./demo/demo-seed";
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -22,6 +23,10 @@ async function bootstrap() {
 		})
 	);
 	configureStaticWebApp(app);
+
+	if (process.env.ENABLE_DEMO_SEED === "true") {
+		await app.get(DemoSeedService).resetAndSeed();
+	}
 
 	const port = Number(process.env.PORT ?? 3000);
 	await app.listen(port, "0.0.0.0");
