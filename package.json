@@ -11,6 +11,8 @@
 		"dev": "docker compose up --build",
 		"dev:api": "npm --workspace apps/api run start:dev",
 		"dev:web": "npm --workspace apps/web run dev",
+		"build": "npm --workspace apps/api run build && npm --workspace apps/web run build",
+		"docker:build:prod": "docker build --target prod -t flowboard-prod .",
 		"db:migrate": "npm --workspace apps/api run prisma:migrate",
 		"db:seed": "npm --workspace apps/api run prisma:seed",
 		"prisma:migrate": "npm --workspace apps/api run prisma:migrate",

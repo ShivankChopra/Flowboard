@@ -46,9 +46,9 @@ export function UserSwitcher() {
 			<FormControl size="small" fullWidth>
 				<InputLabel id="user-switcher-label">User</InputLabel>
 				<Select
+					data-testid="user-switcher"
 					labelId="user-switcher-label"
 					label="User"
-					SelectDisplayProps={{ "data-testid": "user-switcher" }}
 					value={selectedUserId}
 					onChange={(event) => setSelectedUserId(event.target.value)}
 				>
