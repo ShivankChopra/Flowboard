@@ -2,7 +2,6 @@ import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import {
 	Box,
 	Chip,
@@ -23,11 +22,9 @@ import {
 import { Fragment, useState } from "react";
 import type { SortDirection, Status, Task, TaskSort, User } from "../../api/client";
 import { MarkdownPreview } from "./MarkdownPreview";
+import { AssigneeInitials, PriorityBadge } from "./TaskMetadata";
 import {
 	formatDueDate,
-	priorityColor,
-	priorityOptions,
-	userName
 } from "./task-utils";
 
 type DenseTaskListProps = {
@@ -111,9 +108,6 @@ export function DenseTaskList({
 					<TableBody>
 						{tasks.map((task) => {
 							const status = statusById.get(task.statusId);
-							const priorityLabel = priorityOptions.find(
-								(option) => option.value === task.priority
-							)?.label;
 							const expanded = expandedTaskId === task.id;
 
 							return (
@@ -193,12 +187,7 @@ export function DenseTaskList({
 											)}
 										</TableCell>
 										<TableCell>
-											<Chip
-												size="small"
-												color={priorityColor[task.priority]}
-												label={priorityLabel ?? task.priority}
-												variant={task.priority === "none" ? "outlined" : "filled"}
-											/>
+											<PriorityBadge priority={task.priority} />
 										</TableCell>
 										<TableCell>
 											<Chip
@@ -209,23 +198,12 @@ export function DenseTaskList({
 											/>
 										</TableCell>
 										<TableCell>
-											<Stack direction="row" gap={0.5} flexWrap="wrap">
-												{task.assigneeIds.length > 0 ? (
-													task.assigneeIds.map((userId) => (
-														<Chip
-															key={userId}
-															size="small"
-															icon={<PersonOutlineIcon />}
-															label={userName(userId, users)}
-															variant="outlined"
-														/>
-													))
-												) : (
-													<Typography variant="body2" color="text.secondary">
-														Unassigned
-													</Typography>
-												)}
-											</Stack>
+											<AssigneeInitials
+												assigneeIds={task.assigneeIds}
+												users={users}
+												size={26}
+												max={4}
+											/>
 										</TableCell>
 									</TableRow>
 									<TableRow>
@@ -252,12 +230,7 @@ export function DenseTaskList({
 																	}}
 																/>
 															) : null}
-															<Chip
-																size="small"
-																color={priorityColor[task.priority]}
-																label={priorityLabel ?? task.priority}
-																variant={task.priority === "none" ? "outlined" : "filled"}
-															/>
+															<PriorityBadge priority={task.priority} />
 															<Chip
 																size="small"
 																icon={<CalendarTodayOutlinedIcon />}

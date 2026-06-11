@@ -1,7 +1,5 @@
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import {
 	Box,
 	Button,
@@ -14,12 +12,10 @@ import {
 import { useMemo, useState, type DragEvent } from "react";
 import type { Status, Task, User } from "../../api/client";
 import { MarkdownPreview } from "./MarkdownPreview";
+import { AssigneeInitials, DueDateMeta, PriorityBadge } from "./TaskMetadata";
 import {
-	formatDueDate,
-	priorityColor,
-	priorityOptions,
+	priorityVisuals,
 	tasksForStatus,
-	userName,
 } from "./task-utils";
 
 type KanbanBoardProps = {
@@ -323,9 +319,7 @@ function TaskCard({
 	onDragStart,
 	onDragEnd,
 }: TaskCardProps) {
-	const priorityLabel = priorityOptions.find(
-		(option) => option.value === task.priority,
-	)?.label;
+	const priorityVisual = priorityVisuals[task.priority];
 
 	return (
 		<Paper
@@ -337,33 +331,62 @@ function TaskCard({
 			onDragEnd={onDragEnd}
 			onClick={onClick}
 			sx={{
-				border: "3px solid",
-				borderColor: "divider",
-				// borderLeftColor:
-				// 	task.priority === "urgent" ? "error.main" : "divider",
+				bgcolor: "background.paper",
+				border: "1px solid",
+				borderColor: "rgba(148, 163, 184, 0.42)",
+				borderLeft: "4px solid",
+				borderLeftColor:
+					task.priority === "none"
+						? "rgba(148, 163, 184, 0.42)"
+						: priorityVisual.color,
+				boxShadow: "0 1px 2px rgba(15, 23, 42, 0.06)",
 				cursor: disabled ? "default" : "grab",
 				opacity: dragging ? 0.48 : 1,
-				p: 1.25,
-				transition: "border-color 120ms ease, box-shadow 120ms ease",
+				p: 1.35,
+				transition:
+					"border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease",
 				"&:hover": {
 					borderColor: "primary.light",
-					boxShadow: 1,
+					boxShadow: "0 10px 22px rgba(15, 23, 42, 0.1)",
+					transform: disabled ? "none" : "translateY(-1px)",
 				},
 			}}
 		>
-			<Stack gap={1}>
+			<Stack gap={1.15}>
 				<Stack direction="row" alignItems="flex-start" gap={0.75}>
-					<DragIndicatorIcon
-						color="action"
-						sx={{ fontSize: 18, mt: 0.15 }}
-					/>
-					<Typography
-						variant="body2"
-						fontWeight={800}
-						sx={{ flex: 1 }}
+					<Box
+						sx={{
+							alignItems: "center",
+							color: "text.disabled",
+							display: "flex",
+							height: 22,
+							mt: 0.1,
+						}}
 					>
-						{task.title}
-					</Typography>
+						<DragIndicatorIcon sx={{ fontSize: 18 }} />
+					</Box>
+					<Stack gap={0.75} sx={{ flex: 1, minWidth: 0 }}>
+						<Stack
+							direction="row"
+							alignItems="flex-start"
+							justifyContent="space-between"
+							gap={1}
+						>
+							<Typography
+								variant="body2"
+								fontWeight={850}
+								sx={{
+									flex: 1,
+									lineHeight: 1.35,
+									minWidth: 0,
+									overflowWrap: "anywhere",
+								}}
+							>
+								{task.title}
+							</Typography>
+							<PriorityBadge priority={task.priority} />
+						</Stack>
+					</Stack>
 				</Stack>
 				{task.description ? (
 					<Box
@@ -372,41 +395,32 @@ function TaskCard({
 							display: "-webkit-box",
 							overflow: "hidden",
 							WebkitBoxOrient: "vertical",
-							WebkitLineClamp: 3,
+							WebkitLineClamp: 2,
+							"& p": {
+								fontSize: 12.5,
+								lineHeight: 1.45,
+								margin: 0,
+							},
 						}}
 					>
 						<MarkdownPreview value={task.description} />
 					</Box>
 				) : null}
-				<Stack direction="row" gap={0.75} flexWrap="wrap">
-					<Chip
-						size="small"
-						color={priorityColor[task.priority]}
-						label={priorityLabel ?? task.priority}
-						variant={
-							task.priority === "none" ? "outlined" : "filled"
-						}
-					/>
-					<Chip
-						size="small"
-						icon={<CalendarTodayOutlinedIcon />}
-						label={formatDueDate(task.dueDate)}
-						variant="outlined"
+				<Stack
+					direction="row"
+					alignItems="center"
+					justifyContent="space-between"
+					gap={1}
+					sx={{ minHeight: 30 }}
+				>
+					<DueDateMeta dueDate={task.dueDate} />
+					<AssigneeInitials
+						assigneeIds={task.assigneeIds}
+						users={users}
+						size={28}
+						max={3}
 					/>
 				</Stack>
-				{task.assigneeIds.length > 0 ? (
-					<Stack direction="row" gap={0.5} flexWrap="wrap">
-						{task.assigneeIds.map((userId) => (
-							<Chip
-								key={userId}
-								size="small"
-								icon={<PersonOutlineIcon />}
-								label={userName(userId, users)}
-								variant="outlined"
-							/>
-						))}
-					</Stack>
-				) : null}
 			</Stack>
 		</Paper>
 	);
