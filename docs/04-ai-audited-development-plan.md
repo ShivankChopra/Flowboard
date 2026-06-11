@@ -31,6 +31,7 @@ Included in the planned MVP:
 - `@hello-pangea/dnd` for kanban drag-and-drop.
 - Markdown rendering for task descriptions using `react-markdown`.
 - Focused Jest backend tests for permission and task-access behavior.
+- One Playwright happy-path E2E test covering the evaluator demo flow.
 - Dockerized deployment to Fly.io, Railway, or Render as a selected stretch goal.
 - Full-text task search in the selected list view as a selected stretch goal.
 
@@ -42,8 +43,9 @@ Deferred unless a later decision explicitly adds them:
 - Subtasks.
 - Real-time updates.
 - OpenAPI/Swagger.
-- Frontend E2E tests.
 - Activity feed.
+
+Frontend happy-path testing is intentionally included even though the main phase sequence prioritizes backend correctness first. The Playwright test does not need exhaustive frontend coverage; it should lock the core demo path after the UI is integrated.
 
 ## 3. Repository And Tooling
 
@@ -1661,6 +1663,7 @@ Implementation tasks:
 - Run full Docker Compose flow from a clean state.
 - Run migration and seed.
 - Run backend tests.
+- Run the Playwright happy-path E2E test after the UI demo flow is stable.
 - Manually walk through Alice/Bob/Carol demo.
 - Fix obvious loading/error/empty state gaps.
 - Update README and `AI_USAGE.md` after implementation.
@@ -1676,6 +1679,13 @@ Verification checklist:
 - Task drawer works.
 - Admin controls work.
 - Backend focused tests pass.
+- Playwright happy-path E2E test passes.
+
+Happy-path E2E callout:
+
+- Keep the Playwright test focused on the assignment demo rather than broad UI coverage.
+- Cover loading the app, switching between seeded users, selecting a visible list, viewing task data, opening the task drawer, and performing one stable task update or drag action.
+- Include one permission assertion that a list or task visible to Alice cannot be accessed by a denied member such as Carol.
 
 Manual audit:
 
