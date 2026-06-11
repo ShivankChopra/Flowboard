@@ -7,3 +7,4 @@ coverage/
 *.log
 .DS_Store
 apps/web/.vite/
+apps/web/test-results/

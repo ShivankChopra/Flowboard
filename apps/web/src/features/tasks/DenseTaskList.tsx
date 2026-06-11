@@ -119,6 +119,7 @@ export function DenseTaskList({
 							return (
 								<Fragment key={task.id}>
 									<TableRow
+										data-testid="task-row"
 										hover
 										onClick={() =>
 											setExpandedTaskId((current) =>
@@ -141,6 +142,7 @@ export function DenseTaskList({
 														</Typography>
 														<Tooltip title="Edit task">
 															<IconButton
+																aria-label={`Edit task ${task.title}`}
 																size="small"
 																onClick={(event) => {
 																	event.stopPropagation();

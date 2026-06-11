@@ -17,11 +17,16 @@
 		"prisma:seed": "npm --workspace apps/api run prisma:seed",
 		"prisma:generate": "npm --workspace apps/api run prisma:generate",
 		"test:api": "npm --workspace apps/api run test",
+		"test:e2e": "npm --workspace apps/web run test:e2e",
+		"test:e2e-ui": "npm --workspace apps/web run test:e2e-ui",
 		"lint": "npm --workspaces run lint",
 		"typecheck": "npm --workspaces run typecheck"
 	},
 	"engines": {
 		"node": ">=22.0.0",
 		"npm": ">=10.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^25.9.3"
 	}
 }

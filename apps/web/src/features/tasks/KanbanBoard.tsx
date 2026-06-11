@@ -132,6 +132,8 @@ export function KanbanBoard({
 
 				return (
 					<Paper
+						aria-label={`${status.name} kanban column`}
+						data-testid={`kanban-column-${status.key}`}
 						key={status.id}
 						variant="outlined"
 						onDragOver={(event) => {
@@ -327,6 +329,8 @@ function TaskCard({
 
 	return (
 		<Paper
+			aria-label={`Task card ${task.title}`}
+			data-testid="task-card"
 			variant="outlined"
 			draggable={!disabled}
 			onDragStart={onDragStart}

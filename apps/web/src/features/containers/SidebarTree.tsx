@@ -501,6 +501,8 @@ function ContainerNode({
 	return (
 		<Box>
 			<ListItemButton
+				aria-label={`${node.type}: ${node.name}`}
+				data-testid="container-node"
 				selected={selected}
 				onDragOver={(event) => onDragOver(event, node)}
 				onDrop={(event) => onDrop(event, node)}
@@ -633,6 +635,7 @@ function ContainerNode({
 								title={`Create ${childType} under ${node.name}`}
 							>
 								<IconButton
+									aria-label={`Create ${childType} under ${node.name}`}
 									edge="end"
 									size="small"
 									onClick={(event) => {
@@ -654,6 +657,7 @@ function ContainerNode({
 						) : null}
 						<Tooltip title={`Admin settings for ${node.name}`}>
 							<IconButton
+								aria-label={`Admin settings for ${node.name}`}
 								edge="end"
 								size="small"
 								onClick={(event) => {

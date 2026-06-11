@@ -48,6 +48,7 @@ export function UserSwitcher() {
 				<Select
 					labelId="user-switcher-label"
 					label="User"
+					SelectDisplayProps={{ "data-testid": "user-switcher" }}
 					value={selectedUserId}
 					onChange={(event) => setSelectedUserId(event.target.value)}
 				>
@@ -82,4 +83,3 @@ export function UserSwitcher() {
 		</Stack>
 	);
 }
-
