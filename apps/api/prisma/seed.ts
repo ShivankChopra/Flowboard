@@ -70,7 +70,17 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001001",
 		title: "Design task permission checks",
-		description: "Define service-level checks before exposing task mutation routes.",
+		description: [
+			"## Permission check plan",
+			"Define service-level checks before exposing task mutation routes.",
+			"",
+			"### Rules to cover",
+			"- **Admins** bypass container grants.",
+			"- Members can mutate tasks only when they can access the task's `primaryListId`.",
+			"- A parent `deny` must hide the whole subtree.",
+			"",
+			"Demo note: try Bob against the Product research task and confirm the API returns `403`."
+		].join("\n"),
 		priority: "urgent",
 		dueDate: "2026-06-18T10:00:00.000Z",
 		listId: ids.backendBacklog,
@@ -81,7 +91,15 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001002",
 		title: "Add list status validation",
-		description: "Reject task updates when `statusId` does not belong to `primaryListId`.",
+		description: [
+			"## Status/list validation",
+			"Reject task updates when `statusId` does not belong to `primaryListId`.",
+			"",
+			"### Acceptance checks",
+			"- Creating a task without `statusId` uses the list's default `todo` status.",
+			"- Moving between lists maps by status key when possible.",
+			"- Invalid cross-list status updates return **validation errors**, not silent remaps."
+		].join("\n"),
 		priority: "high",
 		dueDate: "2026-06-20T10:00:00.000Z",
 		listId: ids.backendBacklog,
@@ -120,7 +138,17 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001006",
 		title: "Build sidebar tree shell",
-		description: "Render workspace, spaces, folders, and lists with collapse state.",
+		description: [
+			"## Sidebar tree shell",
+			"Render the full workspace hierarchy with clear collapse state.",
+			"",
+			"### Must show",
+			"- Workspace, spaces, folders, and lists in one nested tree.",
+			"- Visibility badges for **private** containers.",
+			"- Different trees when switching between Alice, Bob, and Carol.",
+			"",
+			"Reference behavior: [MUI tree view patterns](https://mui.com/material-ui/react-tree-view/)."
+		].join("\n"),
 		priority: "high",
 		dueDate: "2026-06-19T10:00:00.000Z",
 		listId: ids.webApp,
@@ -140,7 +168,17 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001008",
 		title: "Wire kanban columns to list statuses",
-		description: "Columns must come from the selected list's status set.",
+		description: [
+			"## Kanban status mapping",
+			"Columns must come from the selected list's status set, not a global enum.",
+			"",
+			"### Interaction details",
+			"- Drag within a column rewrites `position` for that status.",
+			"- Drag to another column updates `statusId` and target position.",
+			"- Failed moves should refetch tasks and show a visible error.",
+			"",
+			"Keep the board fast and predictable for the demo path."
+		].join("\n"),
 		priority: "urgent",
 		dueDate: "2026-06-21T10:00:00.000Z",
 		listId: ids.webApp,
@@ -151,7 +189,18 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001009",
 		title: "Add task drawer markdown preview",
-		description: "Use markdown for task descriptions. Do not enable raw HTML.",
+		description: [
+			"# Markdown preview",
+			"Use markdown for task descriptions. Do **not** enable raw HTML.",
+			"",
+			"### Supported formatting",
+			"- Headings for structure.",
+			"- Bullets for acceptance criteria.",
+			"- Inline code like `primaryListId` and `statusId`.",
+			"- External links such as [CommonMark](https://commonmark.org/).",
+			"",
+			"Demo this task in the drawer to show rich task notes."
+		].join("\n"),
 		priority: "normal",
 		dueDate: "2026-06-27T10:00:00.000Z",
 		listId: ids.webApp,
@@ -170,7 +219,17 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001011",
 		title: "Tag top feedback themes",
-		description: "- Navigation clarity\n- Task ownership\n- Due date visibility",
+		description: [
+			"## Feedback themes",
+			"Cluster interview notes into themes the team can act on during Q2 launch.",
+			"",
+			"### Current tags",
+			"- **Navigation clarity**: users need stronger hierarchy cues.",
+			"- **Task ownership**: assignees should be visible without opening a task.",
+			"- **Due date visibility**: late work should stand out in dense views.",
+			"",
+			"Use these tags to validate the list and board presentation."
+		].join("\n"),
 		priority: "normal",
 		dueDate: "2026-06-23T10:00:00.000Z",
 		listId: ids.researchQueue,
@@ -200,7 +259,17 @@ const tasks: TaskSeed[] = [
 	{
 		id: "00000000-0000-4000-8000-000000001014",
 		title: "Draft Q2 launch research notes",
-		description: "Capture findings in a format that can be linked from the demo task drawer.",
+		description: [
+			"## Q2 launch research notes",
+			"Capture findings in a format that can be opened directly from the demo task drawer.",
+			"",
+			"### Draft outline",
+			"- What users expect from a lightweight workspace.",
+			"- Where permission differences need to be obvious.",
+			"- Which task metadata helps scanning: **status**, **priority**, **assignee**, and **due date**.",
+			"",
+			"Search demo idea: search for `permission` or `metadata` in this list."
+		].join("\n"),
 		priority: "normal",
 		listId: ids.researchQueue,
 		statusKey: "in_progress",
