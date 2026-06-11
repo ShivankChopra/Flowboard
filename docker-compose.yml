@@ -20,9 +20,9 @@ services:
       context: .
       target: api-dev
       args:
-        DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+        DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
     environment:
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
       PORT: ${PORT:-3000}
     ports:
       - "3000:3000"
