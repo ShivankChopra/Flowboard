@@ -78,7 +78,7 @@ export function TaskDrawer({
 	const [dueDate, setDueDate] = useState("");
 	const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
 	const [descriptionTab, setDescriptionTab] = useState<"write" | "preview">(
-		"write",
+		"preview",
 	);
 	const [drawerWidth, setDrawerWidth] = useState(520);
 	const mode = task ? "edit" : "create";
@@ -94,7 +94,7 @@ export function TaskDrawer({
 		setPriority(task?.priority ?? "none");
 		setDueDate(dateInputValue(task?.dueDate ?? null));
 		setAssigneeIds(task?.assigneeIds ?? []);
-		setDescriptionTab("write");
+		setDescriptionTab("preview");
 	}, [initialStatusId, open, statuses, task]);
 
 	const previewDescription = useMemo(
@@ -298,8 +298,8 @@ export function TaskDrawer({
 								},
 							}}
 						>
-							<Tab value="write" label="Write" />
 							<Tab value="preview" label="Preview" />
+							<Tab value="write" label="Edit" />
 						</Tabs>
 						<Box sx={{ p: 1.5 }}>
 							{descriptionTab === "write" ? (

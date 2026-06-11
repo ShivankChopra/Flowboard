@@ -6,7 +6,7 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LockOutlinedIcon from "@mui/icons-material/Lock";
 import SettingsIcon from "@mui/icons-material/Settings";
 import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboard";
-import ViewKanbanIcon from "@mui/icons-material/ViewKanban";
+import ViewKanbanIcon from "@mui/icons-material/FormatListBulletedOutlined";
 import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import {
 	Alert,
@@ -57,7 +57,7 @@ const typeIconColor: Record<ContainerType, string> = {
 	workspace: "#1976D2",
 	space: "#2E7D32",
 	folder: "#F59E0B",
-	list: "#546E7A",
+	list: "#454674",
 };
 
 const childTypeByParentType: Partial<
