@@ -124,6 +124,10 @@ export type UpdateStatusPayload = {
 
 type ApiErrorResponse = {
 	code?: string;
+	error?: {
+		code?: string;
+		message?: string | string[];
+	};
 	message?: string | string[];
 };
 
@@ -180,12 +184,14 @@ async function requestJson<T>(
 async function readError(response: Response): Promise<{ code?: string; message: string }> {
 	try {
 		const body = (await response.json()) as ApiErrorResponse;
-		const message = Array.isArray(body.message)
-			? body.message.join(" ")
-			: body.message;
+		const serverError = body.error;
+		const rawMessage = serverError?.message ?? body.message;
+		const message = Array.isArray(rawMessage)
+			? rawMessage.join(" ")
+			: rawMessage;
 
 		return {
-			code: body.code,
+			code: serverError?.code ?? body.code,
 			message: message ?? `Request failed with status ${response.status}.`
 		};
 	} catch {

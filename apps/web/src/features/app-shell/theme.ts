@@ -7,14 +7,14 @@ export const appTheme = createTheme({
 			main: "#2563eb"
 		},
 		background: {
-			default: "#f6f7f9",
+			default: "#edeff1",
 			paper: "#ffffff"
 		},
 		text: {
 			primary: "#111827",
 			secondary: "#5f6b7a"
 		},
-		divider: "#dde3ea"
+		divider: "#d8e2ec"
 	},
 	typography: {
 		fontFamily: [
@@ -52,4 +52,3 @@ export const appTheme = createTheme({
 		}
 	}
 });
-

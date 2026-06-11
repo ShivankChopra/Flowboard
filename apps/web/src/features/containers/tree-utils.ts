@@ -31,6 +31,10 @@ export function countLists(nodes: ContainerTreeNode[]): number {
 	return flattenTree(nodes).filter((node) => node.type === "list").length;
 }
 
+export function countWorkspaces(nodes: ContainerTreeNode[]): number {
+	return flattenTree(nodes).filter((node) => node.type === "workspace").length;
+}
+
 export function countPrivateNodes(nodes: ContainerTreeNode[]): number {
 	return flattenTree(nodes).filter((node) => node.visibility === "private").length;
 }
@@ -40,4 +44,3 @@ export function getExpandableIds(nodes: ContainerTreeNode[]): string[] {
 		.filter((node) => node.children.length > 0)
 		.map((node) => node.id);
 }
-

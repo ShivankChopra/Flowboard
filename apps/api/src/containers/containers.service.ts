@@ -349,28 +349,42 @@ export class ContainersService {
 		}
 
 		const ancestors = await this.loadAncestorPath(parentId);
-		const privateAncestor = ancestors.find(
+		const privateAncestor = [...ancestors].reverse().find(
 			(container) => container.visibility === ContainerVisibility.private
 		);
 
 		if (privateAncestor) {
 			throw new BadRequestException({
 				code: ErrorCode.ValidationError,
-				message: "A container cannot be public under a private ancestor."
+				message: `Cannot make this container public because ${privateAncestor.type} "${privateAncestor.name}" is private.`
 			});
 		}
 	}
 
-	private async loadAncestorPath(containerId: string): Promise<Array<{ id: string; parentId: string | null; visibility: ContainerVisibility }>> {
+	private async loadAncestorPath(containerId: string): Promise<Array<{
+		id: string;
+		name: string;
+		parentId: string | null;
+		type: ContainerType;
+		visibility: ContainerVisibility;
+	}>> {
 		const containers = await this.prisma.container.findMany({
 			select: {
 				id: true,
+				name: true,
 				parentId: true,
+				type: true,
 				visibility: true
 			}
 		});
 		const containerById = new Map(containers.map((container) => [container.id, container]));
-		const path: Array<{ id: string; parentId: string | null; visibility: ContainerVisibility }> = [];
+		const path: Array<{
+			id: string;
+			name: string;
+			parentId: string | null;
+			type: ContainerType;
+			visibility: ContainerVisibility;
+		}> = [];
 		const visited = new Set<string>();
 		let current = containerById.get(containerId);
 

@@ -1,5 +1,5 @@
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import {
 	Alert,
@@ -90,7 +90,7 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 			statusId: string;
 			name: string;
 			category: StatusCategory;
-			color: string;
+			color?: string;
 		}) => updateStatus(currentUserId, statusId, { name, category, color }),
 		onSuccess: invalidateListData
 	});
@@ -101,6 +101,17 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 			invalidateListData();
 		}
 	});
+
+	function resetMutations() {
+		createMutation.reset();
+		updateMutation.reset();
+		deleteMutation.reset();
+	}
+
+	useEffect(() => {
+		resetMutations();
+		setDeleteTarget(null);
+	}, [listId]);
 
 	if (statusesQuery.isLoading) {
 		return (
@@ -154,22 +165,32 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 					border: "1px solid",
 					borderColor: "divider",
 					borderRadius: 1,
-					p: 1.25
+					p: 2
 				}}
 			>
-				<Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
-					New status
-				</Typography>
-				<Stack gap={1}>
-					<Stack direction={{ xs: "column", sm: "row" }} gap={1}>
+				<Stack gap={1.5}>
+					<Box>
+						<Typography variant="subtitle2" fontWeight={800}>
+							Add status
+						</Typography>
+						<Typography variant="caption" color="text.secondary">
+							Key is generated from the name and can be adjusted before creation.
+						</Typography>
+					</Box>
+					<Box
+						sx={{
+							display: "grid",
+							gap: 1.25,
+							gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }
+						}}
+					>
 						<TextField
 							label="Name"
 							value={newName}
 							onChange={(event) => {
+								resetMutations();
 								setNewName(event.target.value);
-								setNewKey((current) =>
-									current ? current : slugifyStatusKey(event.target.value)
-								);
+								setNewKey(slugifyStatusKey(event.target.value));
 							}}
 							size="small"
 							fullWidth
@@ -177,21 +198,32 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 						<TextField
 							label="Key"
 							value={newKey}
-							onChange={(event) => setNewKey(slugifyStatusKey(event.target.value))}
+							onChange={(event) => {
+								resetMutations();
+								setNewKey(slugifyStatusKey(event.target.value));
+							}}
+							helperText={`Preview: ${newKey || "status_key"}`}
 							size="small"
 							fullWidth
 						/>
-					</Stack>
-					<Stack direction={{ xs: "column", sm: "row" }} gap={1}>
+					</Box>
+					<Box
+						sx={{
+							display: "grid",
+							gap: 1.25,
+							gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }
+						}}
+					>
 						<FormControl size="small" fullWidth>
 							<InputLabel id="new-status-category-label">Category</InputLabel>
 							<Select
 								labelId="new-status-category-label"
 								label="Category"
 								value={newCategory}
-								onChange={(event) =>
-									setNewCategory(event.target.value as StatusCategory)
-								}
+								onChange={(event) => {
+									resetMutations();
+									setNewCategory(event.target.value as StatusCategory);
+								}}
 							>
 								{categories.map((category) => (
 									<MenuItem key={category.value} value={category.value}>
@@ -204,16 +236,25 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 							label="Color"
 							type="color"
 							value={newColor}
-							onChange={(event) => setNewColor(event.target.value)}
+							onChange={(event) => {
+								resetMutations();
+								setNewColor(event.target.value);
+							}}
 							size="small"
 							InputLabelProps={{ shrink: true }}
 							fullWidth
 						/>
+					</Box>
+					<Stack direction="row" justifyContent="flex-end">
 						<Button
+							size="small"
 							variant="contained"
 							startIcon={<AddCircleOutlineIcon />}
 							disabled={!newName.trim() || busy}
-							onClick={() => createMutation.mutate()}
+							onClick={() => {
+								resetMutations();
+								createMutation.mutate();
+							}}
 							sx={{ minWidth: 116 }}
 						>
 							Create
@@ -222,7 +263,13 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 				</Stack>
 			</Box>
 
-			<Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)}>
+			<Dialog
+				open={Boolean(deleteTarget)}
+				onClose={() => {
+					resetMutations();
+					setDeleteTarget(null);
+				}}
+			>
 				<DialogTitle>Delete status</DialogTitle>
 				<DialogContent>
 					<Typography>
@@ -230,12 +277,21 @@ export function StatusSettingsPanel({ currentUserId, listId }: StatusSettingsPan
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+					<Button
+						onClick={() => {
+							resetMutations();
+							setDeleteTarget(null);
+						}}
+					>
+						Cancel
+					</Button>
 					<Button
 						color="error"
 						variant="contained"
 						disabled={deleteMutation.isPending || !deleteTarget}
 						onClick={() => {
+							resetMutations();
+
 							if (deleteTarget) {
 								deleteMutation.mutate(deleteTarget.id);
 							}
@@ -255,7 +311,7 @@ type StatusRowProps = {
 	onSave: (payload: {
 		name: string;
 		category: StatusCategory;
-		color: string;
+		color?: string;
 	}) => void;
 	onDelete: () => void;
 };
@@ -274,7 +330,7 @@ function StatusRow({ status, disabled, onSave, onDelete }: StatusRowProps) {
 	const changed =
 		name.trim() !== status.name ||
 		category !== status.category ||
-		color !== status.color;
+		(!status.isDefault && color !== status.color);
 
 	return (
 		<Box
@@ -307,7 +363,7 @@ function StatusRow({ status, disabled, onSave, onDelete }: StatusRowProps) {
 					<Button
 						size="small"
 						color="error"
-						startIcon={<DeleteOutlineIcon />}
+						startIcon={<DeleteIcon />}
 						disabled={disabled || status.isDefault}
 						onClick={onDelete}
 					>
@@ -344,6 +400,7 @@ function StatusRow({ status, disabled, onSave, onDelete }: StatusRowProps) {
 						onChange={(event) => setColor(event.target.value)}
 						size="small"
 						InputLabelProps={{ shrink: true }}
+						disabled={status.isDefault}
 						fullWidth
 					/>
 					<Button
@@ -355,7 +412,7 @@ function StatusRow({ status, disabled, onSave, onDelete }: StatusRowProps) {
 							onSave({
 								name: name.trim(),
 								category,
-								color
+								...(status.isDefault ? {} : { color })
 							})
 						}
 						sx={{ minWidth: 96 }}

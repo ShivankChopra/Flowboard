@@ -10,6 +10,7 @@ import {
 	Typography
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
 	deleteGrant,
 	listGrants,
@@ -53,6 +54,15 @@ export function GrantManagementPanel({
 		mutationFn: (userId: string) => deleteGrant(currentUserId, container.id, userId),
 		onSuccess: invalidateGrantsAndTrees
 	});
+
+	function resetMutations() {
+		upsertMutation.reset();
+		deleteMutation.reset();
+	}
+
+	useEffect(() => {
+		resetMutations();
+	}, [container.id]);
 
 	if (grantsQuery.isLoading) {
 		return (
@@ -120,7 +130,10 @@ export function GrantManagementPanel({
 								size="small"
 								startIcon={<CheckCircleOutlineIcon />}
 								disabled={busy}
-								onClick={() => upsertMutation.mutate({ userId: user.id, mode: "allow" })}
+								onClick={() => {
+									resetMutations();
+									upsertMutation.mutate({ userId: user.id, mode: "allow" });
+								}}
 							>
 								Allow
 							</Button>
@@ -129,7 +142,10 @@ export function GrantManagementPanel({
 								color="error"
 								startIcon={<BlockOutlinedIcon />}
 								disabled={busy}
-								onClick={() => upsertMutation.mutate({ userId: user.id, mode: "deny" })}
+								onClick={() => {
+									resetMutations();
+									upsertMutation.mutate({ userId: user.id, mode: "deny" });
+								}}
 							>
 								Deny
 							</Button>
@@ -137,7 +153,10 @@ export function GrantManagementPanel({
 								size="small"
 								startIcon={<RemoveCircleOutlineIcon />}
 								disabled={busy || !grant}
-								onClick={() => deleteMutation.mutate(user.id)}
+								onClick={() => {
+									resetMutations();
+									deleteMutation.mutate(user.id);
+								}}
 							>
 								Clear
 							</Button>

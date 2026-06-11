@@ -11,7 +11,7 @@ import {
 	Stack,
 	ToggleButton,
 	ToggleButtonGroup,
-	Typography
+	Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -28,7 +28,7 @@ import {
 	type SortDirection,
 	type Task,
 	type TaskPayload,
-	type TaskSort
+	type TaskSort,
 } from "../../api/client";
 import { useAppUi } from "../../state/app-ui-context";
 import { DenseTaskList } from "../tasks/DenseTaskList";
@@ -48,10 +48,12 @@ type DrawerState =
 export function ListWorkspace({ list }: ListWorkspaceProps) {
 	const queryClient = useQueryClient();
 	const { selectedUserId } = useAppUi();
-	const [view, setView] = useState<"kanban" | "list">("kanban");
+	const [view, setView] = useState<"Board" | "list">("list");
 	const [listSort, setListSort] = useState<TaskSort>("position");
 	const [listDirection, setListDirection] = useState<SortDirection>("asc");
-	const [drawerState, setDrawerState] = useState<DrawerState>({ mode: "closed" });
+	const [drawerState, setDrawerState] = useState<DrawerState>({
+		mode: "closed",
+	});
 	const [mutationError, setMutationError] = useState<string | null>(null);
 	const taskSort = view === "list" ? listSort : "position";
 	const taskDirection = view === "list" ? listDirection : "asc";
@@ -64,7 +66,7 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 	const statusesQuery = useQuery({
 		queryKey: ["statuses", selectedUserId, list.id],
 		queryFn: ({ signal }) => listStatuses(selectedUserId, list.id, signal),
-		staleTime: 20_000
+		staleTime: 20_000,
 	});
 	const tasksQuery = useQuery({
 		queryKey: ["tasks", selectedUserId, list.id, taskSort, taskDirection],
@@ -75,57 +77,66 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					listId: list.id,
 					limit: 100,
 					sort: taskSort,
-					direction: taskDirection
+					direction: taskDirection,
 				},
-				signal
+				signal,
 			),
-		staleTime: 10_000
+		staleTime: 10_000,
 	});
 	const usersQuery = useQuery({
 		queryKey: ["users", selectedUserId],
 		queryFn: ({ signal }) => listUsers(selectedUserId, signal),
-		staleTime: 60_000
+		staleTime: 60_000,
 	});
 
 	const statuses = useMemo(
 		() => sortStatuses(statusesQuery.data ?? []),
-		[statusesQuery.data]
+		[statusesQuery.data],
 	);
 	const tasks = tasksQuery.data?.data ?? [];
 	const users = usersQuery.data ?? [];
-	const selectedTask = drawerState.mode === "edit"
-		? tasks.find((task) => task.id === drawerState.taskId) ?? null
-		: null;
+	const selectedTask =
+		drawerState.mode === "edit"
+			? (tasks.find((task) => task.id === drawerState.taskId) ?? null)
+			: null;
 
 	const invalidateTasks = () =>
-		queryClient.invalidateQueries({ queryKey: ["tasks", selectedUserId, list.id] });
+		queryClient.invalidateQueries({
+			queryKey: ["tasks", selectedUserId, list.id],
+		});
 
 	const createMutation = useMutation({
-		mutationFn: (payload: TaskPayload) => createTask(selectedUserId, payload),
+		mutationFn: (payload: TaskPayload) =>
+			createTask(selectedUserId, payload),
 		onMutate: () => setMutationError(null),
 		onSuccess: () => {
 			setDrawerState({ mode: "closed" });
 			void invalidateTasks();
 		},
 		onError: (error) =>
-			setMutationError(errorMessage(error, "Task could not be created."))
+			setMutationError(errorMessage(error, "Task could not be created.")),
 	});
 	const updateMutation = useMutation({
-		mutationFn: ({ taskId, payload }: { taskId: string; payload: TaskPayload }) =>
-			updateTask(selectedUserId, taskId, payload),
+		mutationFn: ({
+			taskId,
+			payload,
+		}: {
+			taskId: string;
+			payload: TaskPayload;
+		}) => updateTask(selectedUserId, taskId, payload),
 		onMutate: () => setMutationError(null),
 		onSuccess: () => {
 			setDrawerState({ mode: "closed" });
 			void invalidateTasks();
 		},
 		onError: (error) =>
-			setMutationError(errorMessage(error, "Task could not be updated."))
+			setMutationError(errorMessage(error, "Task could not be updated.")),
 	});
 	const moveMutation = useMutation({
 		mutationFn: ({
 			taskId,
 			statusId,
-			position
+			position,
 		}: {
 			taskId: string;
 			statusId: string;
@@ -133,17 +144,17 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		}) =>
 			moveTask(selectedUserId, taskId, {
 				targetStatusId: statusId,
-				targetPosition: position
+				targetPosition: position,
 			}),
 		onMutate: () => setMutationError(null),
 		onSuccess: () => void invalidateTasks(),
 		onError: (error) =>
-			setMutationError(errorMessage(error, "Task could not be moved."))
+			setMutationError(errorMessage(error, "Task could not be moved.")),
 	});
 	const reorderMutation = useMutation({
 		mutationFn: ({
 			statusId,
-			orderedTaskIds
+			orderedTaskIds,
 		}: {
 			statusId: string;
 			orderedTaskIds: string[];
@@ -153,14 +164,16 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					{
 						listId: list.id,
 						statusId,
-						orderedTaskIds
-					}
-				]
+						orderedTaskIds,
+					},
+				],
 			}),
 		onMutate: () => setMutationError(null),
 		onSuccess: () => void invalidateTasks(),
 		onError: (error) =>
-			setMutationError(errorMessage(error, "Task order could not be saved."))
+			setMutationError(
+				errorMessage(error, "Task order could not be saved."),
+			),
 	});
 	const deleteMutation = useMutation({
 		mutationFn: (taskId: string) => deleteTask(selectedUserId, taskId),
@@ -170,7 +183,7 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 			void invalidateTasks();
 		},
 		onError: (error) =>
-			setMutationError(errorMessage(error, "Task could not be deleted."))
+			setMutationError(errorMessage(error, "Task could not be deleted.")),
 	});
 	const isMutating =
 		createMutation.isPending ||
@@ -178,6 +191,7 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		moveMutation.isPending ||
 		reorderMutation.isPending ||
 		deleteMutation.isPending;
+	const isRefreshing = statusesQuery.isFetching || tasksQuery.isFetching;
 
 	function handleSort(nextSort: TaskSort) {
 		if (nextSort === listSort) {
@@ -198,7 +212,11 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		createMutation.mutate(payload);
 	}
 
-	if (statusesQuery.isLoading || tasksQuery.isLoading || usersQuery.isLoading) {
+	if (
+		statusesQuery.isLoading ||
+		tasksQuery.isLoading ||
+		usersQuery.isLoading
+	) {
 		return (
 			<Stack alignItems="center" gap={1.5} sx={{ py: 8 }}>
 				<CircularProgress size={26} />
@@ -213,10 +231,19 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 		return (
 			<Alert severity="error" sx={{ borderRadius: 1 }}>
 				{statusesQuery.error
-					? errorMessage(statusesQuery.error, "Statuses could not be loaded.")
+					? errorMessage(
+							statusesQuery.error,
+							"Statuses could not be loaded.",
+						)
 					: tasksQuery.error
-						? errorMessage(tasksQuery.error, "Tasks could not be loaded.")
-						: errorMessage(usersQuery.error, "Users could not be loaded.")}
+						? errorMessage(
+								tasksQuery.error,
+								"Tasks could not be loaded.",
+							)
+						: errorMessage(
+								usersQuery.error,
+								"Users could not be loaded.",
+							)}
 			</Alert>
 		);
 	}
@@ -229,33 +256,45 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 				justifyContent="space-between"
 				gap={1.5}
 			>
-				<Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+				<Stack
+					direction="row"
+					gap={1}
+					alignItems="center"
+					flexWrap="wrap"
+				>
 					<ToggleButtonGroup
 						exclusive
 						size="small"
 						value={view}
-						onChange={(_, nextView: "kanban" | "list" | null) => {
+						onChange={(_, nextView: "Board" | "list" | null) => {
 							if (nextView) {
 								setView(nextView);
 							}
 						}}
 					>
-						<ToggleButton value="kanban">
-							<ViewKanbanOutlinedIcon fontSize="small" />
-							<Box component="span" sx={{ ml: 0.75 }}>
-								Kanban
-							</Box>
-						</ToggleButton>
 						<ToggleButton value="list">
 							<FormatListBulletedOutlinedIcon fontSize="small" />
 							<Box component="span" sx={{ ml: 0.75 }}>
 								List
 							</Box>
 						</ToggleButton>
+						<ToggleButton value="Board">
+							<ViewKanbanOutlinedIcon fontSize="small" />
+							<Box component="span" sx={{ ml: 0.75 }}>
+								Board
+							</Box>
+						</ToggleButton>
 					</ToggleButtonGroup>
 					<Button
 						size="small"
-						startIcon={<RefreshOutlinedIcon />}
+						startIcon={
+							isRefreshing ? (
+								<CircularProgress size={16} color="inherit" />
+							) : (
+								<RefreshOutlinedIcon />
+							)
+						}
+						disabled={isRefreshing}
 						onClick={() => {
 							void statusesQuery.refetch();
 							void tasksQuery.refetch();
@@ -270,7 +309,7 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					onClick={() =>
 						setDrawerState({
 							mode: "create",
-							statusId: statuses[0]?.id ?? null
+							statusId: statuses[0]?.id ?? null,
 						})
 					}
 				>
@@ -279,7 +318,11 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 			</Stack>
 
 			{mutationError ? (
-				<Alert severity="error" onClose={() => setMutationError(null)} sx={{ borderRadius: 1 }}>
+				<Alert
+					severity="error"
+					onClose={() => setMutationError(null)}
+					sx={{ borderRadius: 1 }}
+				>
 					{mutationError}
 				</Alert>
 			) : null}
@@ -289,18 +332,22 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					onCreate={() =>
 						setDrawerState({
 							mode: "create",
-							statusId: statuses[0]?.id ?? null
+							statusId: statuses[0]?.id ?? null,
 						})
 					}
 				/>
-			) : view === "kanban" ? (
+			) : view === "Board" ? (
 				<KanbanBoard
 					statuses={statuses}
 					tasks={tasks}
 					users={users}
 					isMutating={isMutating}
-					onCreateTask={(statusId) => setDrawerState({ mode: "create", statusId })}
-					onOpenTask={(task) => setDrawerState({ mode: "edit", taskId: task.id })}
+					onCreateTask={(statusId) =>
+						setDrawerState({ mode: "create", statusId })
+					}
+					onOpenTask={(task) =>
+						setDrawerState({ mode: "edit", taskId: task.id })
+					}
 					onMoveTask={(taskId, statusId, position) =>
 						moveMutation.mutate({ taskId, statusId, position })
 					}
@@ -316,13 +363,16 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 					sort={listSort}
 					direction={listDirection}
 					onSort={handleSort}
-					onOpenTask={(task: Task) => setDrawerState({ mode: "edit", taskId: task.id })}
+					onEditTask={(task: Task) =>
+						setDrawerState({ mode: "edit", taskId: task.id })
+					}
 				/>
 			)}
 
 			<Divider />
 			<Typography variant="caption" color="text.secondary">
-				Showing {tasks.length} of {tasksQuery.data?.pagination.total ?? tasks.length} tasks.
+				Showing {tasks.length} of{" "}
+				{tasksQuery.data?.pagination.total ?? tasks.length} tasks.
 			</Typography>
 
 			<TaskDrawer
@@ -331,7 +381,9 @@ export function ListWorkspace({ list }: ListWorkspaceProps) {
 				statuses={statuses}
 				users={users}
 				task={selectedTask}
-				initialStatusId={drawerState.mode === "create" ? drawerState.statusId : null}
+				initialStatusId={
+					drawerState.mode === "create" ? drawerState.statusId : null
+				}
 				isSaving={createMutation.isPending || updateMutation.isPending}
 				isDeleting={deleteMutation.isPending}
 				error={mutationError}
@@ -355,7 +407,7 @@ function EmptyTaskState({ onCreate }: { onCreate: () => void }) {
 				justifyContent: "center",
 				minHeight: 260,
 				p: 3,
-				textAlign: "center"
+				textAlign: "center",
 			}}
 		>
 			<Stack alignItems="center" gap={1.25}>

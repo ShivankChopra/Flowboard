@@ -1,8 +1,13 @@
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import {
 	Box,
 	Chip,
+	Collapse,
+	IconButton,
 	Paper,
 	Stack,
 	Table,
@@ -11,9 +16,12 @@ import {
 	TableHead,
 	TableRow,
 	TableSortLabel,
+	Tooltip,
 	Typography
 } from "@mui/material";
+import { Fragment, useState } from "react";
 import type { SortDirection, Status, Task, TaskSort, User } from "../../api/client";
+import { MarkdownPreview } from "./MarkdownPreview";
 import {
 	formatDueDate,
 	priorityColor,
@@ -28,7 +36,7 @@ type DenseTaskListProps = {
 	sort: TaskSort;
 	direction: SortDirection;
 	onSort: (sort: TaskSort) => void;
-	onOpenTask: (task: Task) => void;
+	onEditTask: (task: Task) => void;
 };
 
 export function DenseTaskList({
@@ -38,14 +46,15 @@ export function DenseTaskList({
 	sort,
 	direction,
 	onSort,
-	onOpenTask
+	onEditTask
 }: DenseTaskListProps) {
+	const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
 	const statusById = new Map(statuses.map((status) => [status.id, status]));
 
 	return (
 		<Paper variant="outlined" sx={{ overflow: "hidden" }}>
 			<Box sx={{ overflowX: "auto" }}>
-				<Table size="small" sx={{ minWidth: 860 }}>
+				<Table size="small" sx={{ minWidth: 760 }}>
 					<TableHead>
 						<TableRow>
 							<TableCell>Task</TableCell>
@@ -69,15 +78,6 @@ export function DenseTaskList({
 								</TableSortLabel>
 							</TableCell>
 							<TableCell>Assignees</TableCell>
-							<TableCell sortDirection={sort === "position" ? direction : false}>
-								<TableSortLabel
-									active={sort === "position"}
-									direction={sort === "position" ? direction : "asc"}
-									onClick={() => onSort("position")}
-								>
-									Board order
-								</TableSortLabel>
-							</TableCell>
 						</TableRow>
 					</TableHead>
 					<TableBody>
@@ -86,78 +86,172 @@ export function DenseTaskList({
 							const priorityLabel = priorityOptions.find(
 								(option) => option.value === task.priority
 							)?.label;
+							const expanded = expandedTaskId === task.id;
 
 							return (
-								<TableRow
-									key={task.id}
-									hover
-									onClick={() => onOpenTask(task)}
-									sx={{ cursor: "pointer" }}
-								>
-									<TableCell>
-										<Typography variant="body2" fontWeight={800}>
-											{task.title}
-										</Typography>
-										<Typography variant="caption" color="text.secondary">
-											Updated {formatDueDate(task.updatedAt)}
-										</Typography>
-									</TableCell>
-									<TableCell>
-										{status ? (
-											<Stack direction="row" alignItems="center" gap={1}>
-												<Box
-													sx={{
-														bgcolor: status.color,
-														borderRadius: "50%",
-														height: 9,
-														width: 9
-													}}
-												/>
-												<Typography variant="body2">{status.name}</Typography>
+								<Fragment key={task.id}>
+									<TableRow
+										hover
+										onClick={() =>
+											setExpandedTaskId((current) =>
+												current === task.id ? null : task.id
+											)
+										}
+										sx={{ cursor: "pointer" }}
+									>
+										<TableCell>
+											<Stack direction="row" alignItems="center" gap={0.75}>
+												{expanded ? (
+													<KeyboardArrowDownIcon color="action" fontSize="small" />
+												) : (
+													<KeyboardArrowRightIcon color="action" fontSize="small" />
+												)}
+												<Box sx={{ minWidth: 0 }}>
+													<Stack direction="row" alignItems="center" gap={0.5}>
+														<Typography variant="body2" fontWeight={800} noWrap>
+															{task.title}
+														</Typography>
+														<Tooltip title="Edit task">
+															<IconButton
+																size="small"
+																onClick={(event) => {
+																	event.stopPropagation();
+																	onEditTask(task);
+																}}
+																sx={{
+																	bgcolor: "rgba(37, 99, 235, 0.1)",
+																	border: "1px solid",
+																	borderColor: "rgba(37, 99, 235, 0.28)",
+																	borderRadius: 1,
+																	color: "primary.main",
+																	height: 26,
+																	ml: 0.5,
+																	width: 26,
+																	"&:hover": {
+																		bgcolor: "rgba(37, 99, 235, 0.18)",
+																		borderColor: "primary.main"
+																	}
+																}}
+															>
+																<EditOutlinedIcon sx={{ fontSize: 15 }} />
+															</IconButton>
+														</Tooltip>
+													</Stack>
+													<Typography variant="caption" color="text.secondary">
+														Updated {formatDueDate(task.updatedAt)}
+													</Typography>
+												</Box>
 											</Stack>
-										) : (
-											<Typography variant="body2" color="text.secondary">
-												Unknown
-											</Typography>
-										)}
-									</TableCell>
-									<TableCell>
-										<Chip
-											size="small"
-											color={priorityColor[task.priority]}
-											label={priorityLabel ?? task.priority}
-											variant={task.priority === "none" ? "outlined" : "filled"}
-										/>
-									</TableCell>
-									<TableCell>
-										<Chip
-											size="small"
-											icon={<CalendarTodayOutlinedIcon />}
-											label={formatDueDate(task.dueDate)}
-											variant="outlined"
-										/>
-									</TableCell>
-									<TableCell>
-										<Stack direction="row" gap={0.5} flexWrap="wrap">
-											{task.assigneeIds.length > 0 ? (
-												task.assigneeIds.map((userId) => (
-													<Chip
-														key={userId}
-														size="small"
-														icon={<PersonOutlineIcon />}
-														label={userName(userId, users)}
-														variant="outlined"
+										</TableCell>
+										<TableCell>
+											{status ? (
+												<Stack direction="row" alignItems="center" gap={1}>
+													<Box
+														sx={{
+															bgcolor: status.color,
+															borderRadius: "50%",
+															height: 9,
+															width: 9
+														}}
 													/>
-												))
+													<Typography variant="body2">{status.name}</Typography>
+												</Stack>
 											) : (
 												<Typography variant="body2" color="text.secondary">
-													Unassigned
+													Unknown
 												</Typography>
 											)}
-										</Stack>
-									</TableCell>
-									<TableCell>{task.position + 1}</TableCell>
-								</TableRow>
+										</TableCell>
+										<TableCell>
+											<Chip
+												size="small"
+												color={priorityColor[task.priority]}
+												label={priorityLabel ?? task.priority}
+												variant={task.priority === "none" ? "outlined" : "filled"}
+											/>
+										</TableCell>
+										<TableCell>
+											<Chip
+												size="small"
+												icon={<CalendarTodayOutlinedIcon />}
+												label={formatDueDate(task.dueDate)}
+												variant="outlined"
+											/>
+										</TableCell>
+										<TableCell>
+											<Stack direction="row" gap={0.5} flexWrap="wrap">
+												{task.assigneeIds.length > 0 ? (
+													task.assigneeIds.map((userId) => (
+														<Chip
+															key={userId}
+															size="small"
+															icon={<PersonOutlineIcon />}
+															label={userName(userId, users)}
+															variant="outlined"
+														/>
+													))
+												) : (
+													<Typography variant="body2" color="text.secondary">
+														Unassigned
+													</Typography>
+												)}
+											</Stack>
+										</TableCell>
+									</TableRow>
+									<TableRow>
+										<TableCell colSpan={5} sx={{ p: 0 }}>
+											<Collapse in={expanded} timeout="auto" unmountOnExit>
+												<Box
+													sx={{
+														bgcolor: "rgba(17, 24, 39, 0.025)",
+														borderTop: "1px solid",
+														borderColor: "divider",
+														p: 2
+													}}
+												>
+													<Stack gap={1.5}>
+														<Stack direction="row" gap={0.75} flexWrap="wrap">
+															{status ? (
+																<Chip
+																	size="small"
+																	label={status.name}
+																	variant="outlined"
+																	sx={{
+																		borderColor: status.color,
+																		color: "text.primary"
+																	}}
+																/>
+															) : null}
+															<Chip
+																size="small"
+																color={priorityColor[task.priority]}
+																label={priorityLabel ?? task.priority}
+																variant={task.priority === "none" ? "outlined" : "filled"}
+															/>
+															<Chip
+																size="small"
+																icon={<CalendarTodayOutlinedIcon />}
+																label={formatDueDate(task.dueDate)}
+																variant="outlined"
+															/>
+														</Stack>
+														<Box
+															sx={{
+																border: "1px solid",
+																borderColor: "divider",
+																borderRadius: 1,
+																bgcolor: "background.paper",
+																p: 1.5
+															}}
+														>
+															<MarkdownPreview value={task.description} />
+														</Box>
+													</Stack>
+												</Box>
+											</Collapse>
+										</TableCell>
+									</TableRow>
+								</Fragment>
 							);
 						})}
 					</TableBody>

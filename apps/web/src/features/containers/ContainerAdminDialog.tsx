@@ -1,10 +1,10 @@
-import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
-import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ArchiveIcon from "@mui/icons-material/Archive";
+import DeleteIcon from "@mui/icons-material/Delete";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import UnarchiveOutlinedIcon from "@mui/icons-material/UnarchiveOutlined";
 import {
 	Alert,
 	Box,
@@ -26,11 +26,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
 	archiveContainer,
-	createContainer,
 	deleteContainer,
 	updateContainer,
 	type ContainerTreeNode,
-	type ContainerType,
 	type ContainerVisibility,
 	type User
 } from "../../api/client";
@@ -49,10 +47,11 @@ type ContainerAdminDialogProps = {
 
 type ConfirmAction = "archive" | "delete" | null;
 
-const childTypeByParentType: Partial<Record<ContainerType, Exclude<ContainerType, "workspace">>> = {
-	workspace: "space",
-	space: "folder",
-	folder: "list"
+const typeLabel: Record<ContainerTreeNode["type"], string> = {
+	workspace: "Workspace",
+	space: "Space",
+	folder: "Folder",
+	list: "List"
 };
 
 export function ContainerAdminDialog({
@@ -66,10 +65,7 @@ export function ContainerAdminDialog({
 	const { selectedListId, setSelectedListId } = useAppUi();
 	const [name, setName] = useState("");
 	const [visibility, setVisibility] = useState<ContainerVisibility>("public");
-	const [newName, setNewName] = useState("");
-	const [newVisibility, setNewVisibility] = useState<ContainerVisibility>("public");
 	const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
-	const childType = container ? childTypeByParentType[container.type] : undefined;
 
 	useEffect(() => {
 		if (!open || !container) {
@@ -78,8 +74,6 @@ export function ContainerAdminDialog({
 
 		setName(container.name);
 		setVisibility(container.visibility);
-		setNewName("");
-		setNewVisibility(container.visibility);
 		setConfirmAction(null);
 	}, [container, open]);
 
@@ -99,24 +93,6 @@ export function ContainerAdminDialog({
 		},
 		onSuccess: refreshContainers
 	});
-	const createMutation = useMutation({
-		mutationFn: () => {
-			if (!container || !childType) {
-				throw new Error("Child containers cannot be created here.");
-			}
-
-			return createContainer(currentUserId, {
-				name: newName.trim(),
-				parentId: container.id,
-				type: childType,
-				visibility: newVisibility
-			});
-		},
-		onSuccess: () => {
-			setNewName("");
-			refreshContainers();
-		}
-	});
 	const archiveMutation = useMutation({
 		mutationFn: () => {
 			if (!container) {
@@ -132,6 +108,19 @@ export function ContainerAdminDialog({
 
 			setConfirmAction(null);
 			onClose();
+			refreshContainers();
+		}
+	});
+	const restoreMutation = useMutation({
+		mutationFn: () => {
+			if (!container) {
+				throw new Error("Container is required.");
+			}
+
+			return archiveContainer(currentUserId, container.id, false);
+		},
+		onSuccess: () => {
+			setConfirmAction(null);
 			refreshContainers();
 		}
 	});
@@ -154,16 +143,27 @@ export function ContainerAdminDialog({
 		}
 	});
 
+	function resetMutations() {
+		updateMutation.reset();
+		archiveMutation.reset();
+		restoreMutation.reset();
+		deleteMutation.reset();
+	}
+
+	useEffect(() => {
+		resetMutations();
+	}, [container?.id, open]);
+
 	const mutationError = useMemo(
 		() =>
 			updateMutation.error ??
-			createMutation.error ??
 			archiveMutation.error ??
+			restoreMutation.error ??
 			deleteMutation.error,
 		[
 			archiveMutation.error,
-			createMutation.error,
 			deleteMutation.error,
+			restoreMutation.error,
 			updateMutation.error
 		]
 	);
@@ -174,22 +174,23 @@ export function ContainerAdminDialog({
 
 	const busy =
 		updateMutation.isPending ||
-		createMutation.isPending ||
 		archiveMutation.isPending ||
+		restoreMutation.isPending ||
 		deleteMutation.isPending;
 	const canDeleteOrArchive = container.type !== "workspace";
 	const hasEditChanges =
 		name.trim() !== container.name || visibility !== container.visibility;
+	const label = typeLabel[container.type];
 
 	return (
 		<>
 			<Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-				<DialogTitle>Admin: {container.name}</DialogTitle>
+				<DialogTitle>{label} settings: {container.name}</DialogTitle>
 				<DialogContent>
 					<Stack gap={2.25} sx={{ pt: 0.5 }}>
 						{mutationError ? (
 							<Alert severity="error" sx={{ borderRadius: 1 }}>
-								{errorMessage(mutationError, "Container change could not be saved.")}
+								{errorMessage(mutationError, `${label} change could not be saved.`)}
 							</Alert>
 						) : null}
 
@@ -197,14 +198,17 @@ export function ContainerAdminDialog({
 							<Stack direction="row" alignItems="center" gap={1}>
 								<FolderOutlinedIcon color="primary" fontSize="small" />
 								<Typography variant="subtitle2" fontWeight={800}>
-									Container
+									{label} details
 								</Typography>
 							</Stack>
 							<Stack direction={{ xs: "column", sm: "row" }} gap={1}>
 								<TextField
 									label="Name"
 									value={name}
-									onChange={(event) => setName(event.target.value)}
+									onChange={(event) => {
+										resetMutations();
+										setName(event.target.value);
+									}}
 									size="small"
 									fullWidth
 								/>
@@ -214,9 +218,10 @@ export function ContainerAdminDialog({
 										labelId="container-visibility-label"
 										label="Visibility"
 										value={visibility}
-										onChange={(event) =>
-											setVisibility(event.target.value as ContainerVisibility)
-										}
+										onChange={(event) => {
+											resetMutations();
+											setVisibility(event.target.value as ContainerVisibility);
+										}}
 									>
 										<MenuItem value="public">Public</MenuItem>
 										<MenuItem value="private">Private</MenuItem>
@@ -236,52 +241,6 @@ export function ContainerAdminDialog({
 								Private visibility cascades to descendants. Public visibility is rejected under private ancestors.
 							</Typography>
 						</Stack>
-
-						{childType ? (
-							<>
-								<Divider />
-								<Stack gap={1}>
-									<Stack direction="row" alignItems="center" gap={1}>
-										<AddCircleOutlineIcon color="primary" fontSize="small" />
-										<Typography variant="subtitle2" fontWeight={800}>
-											Create {childType}
-										</Typography>
-									</Stack>
-									<Stack direction={{ xs: "column", sm: "row" }} gap={1}>
-										<TextField
-											label="Name"
-											value={newName}
-											onChange={(event) => setNewName(event.target.value)}
-											size="small"
-											fullWidth
-										/>
-										<FormControl size="small" fullWidth>
-											<InputLabel id="new-container-visibility-label">Visibility</InputLabel>
-											<Select
-												labelId="new-container-visibility-label"
-												label="Visibility"
-												value={newVisibility}
-												onChange={(event) =>
-													setNewVisibility(event.target.value as ContainerVisibility)
-												}
-											>
-												<MenuItem value="public">Public</MenuItem>
-												<MenuItem value="private">Private</MenuItem>
-											</Select>
-										</FormControl>
-										<Button
-											variant="contained"
-											startIcon={<AddCircleOutlineIcon />}
-											disabled={busy || !newName.trim()}
-											onClick={() => createMutation.mutate()}
-											sx={{ minWidth: 120 }}
-										>
-											Create
-										</Button>
-									</Stack>
-								</Stack>
-							</>
-						) : null}
 
 						<Divider />
 						<Stack gap={1}>
@@ -322,19 +281,39 @@ export function ContainerAdminDialog({
 								Danger zone
 							</Typography>
 							<Stack direction="row" gap={1} flexWrap="wrap">
-								<Button
-									color="warning"
-									startIcon={<ArchiveOutlinedIcon />}
-									disabled={busy || !canDeleteOrArchive}
-									onClick={() => setConfirmAction("archive")}
-								>
-									Archive
-								</Button>
+								{container.isArchived ? (
+									<Button
+										color="success"
+										startIcon={<UnarchiveOutlinedIcon />}
+										disabled={busy || !canDeleteOrArchive}
+										onClick={() => {
+											resetMutations();
+											restoreMutation.mutate();
+										}}
+									>
+										Restore
+									</Button>
+								) : (
+									<Button
+										color="warning"
+										startIcon={<ArchiveIcon />}
+										disabled={busy || !canDeleteOrArchive}
+										onClick={() => {
+											resetMutations();
+											setConfirmAction("archive");
+										}}
+									>
+										Archive
+									</Button>
+								)}
 								<Button
 									color="error"
-									startIcon={<DeleteOutlineIcon />}
+									startIcon={<DeleteIcon />}
 									disabled={busy || !canDeleteOrArchive}
-									onClick={() => setConfirmAction("delete")}
+									onClick={() => {
+										resetMutations();
+										setConfirmAction("delete");
+									}}
 								>
 									Delete
 								</Button>
@@ -343,7 +322,14 @@ export function ContainerAdminDialog({
 					</Stack>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={onClose}>Close</Button>
+					<Button
+						onClick={() => {
+							resetMutations();
+							onClose();
+						}}
+					>
+						Close
+					</Button>
 				</DialogActions>
 			</Dialog>
 
@@ -359,12 +345,21 @@ export function ContainerAdminDialog({
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setConfirmAction(null)}>Cancel</Button>
+					<Button
+						onClick={() => {
+							resetMutations();
+							setConfirmAction(null);
+						}}
+					>
+						Cancel
+					</Button>
 					<Button
 						color={confirmAction === "archive" ? "warning" : "error"}
 						variant="contained"
 						disabled={busy}
 						onClick={() => {
+							resetMutations();
+
 							if (confirmAction === "archive") {
 								archiveMutation.mutate();
 							} else if (confirmAction === "delete") {
