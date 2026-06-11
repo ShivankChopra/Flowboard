@@ -7,6 +7,7 @@ import {
 import {
 	ContainerType,
 	ContainerVisibility,
+	GrantMode,
 	Prisma,
 	StatusCategory
 } from "@prisma/client";
@@ -62,7 +63,7 @@ export class ContainersService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly permissions: PermissionsService
-	) {}
+	) { }
 
 	getTree(
 		user: AuthenticatedUser,
@@ -330,7 +331,11 @@ export class ContainersService {
 	): Promise<GrantDto> {
 		this.permissions.assertCanManageGrants(user);
 		await this.findContainerOrThrow(containerId);
-		await this.findUserOrThrow(targetUserId);
+		const targetUser = await this.findUserOrThrow(targetUserId);
+
+		if (dto.mode === GrantMode.allow) {
+			await this.assertNoDeniedAncestorGrant(containerId, targetUser.id, targetUser.name);
+		}
 
 		const grant = await this.prisma.grant.upsert({
 			where: {
@@ -350,6 +355,41 @@ export class ContainersService {
 		});
 
 		return toGrantDto(grant);
+	}
+
+	private async assertNoDeniedAncestorGrant(
+		containerId: string,
+		targetUserId: string,
+		targetUserName: string
+	): Promise<void> {
+		const path = await this.loadAncestorPath(containerId);
+		const ancestors = path.filter((container) => container.id !== containerId);
+
+		if (ancestors.length === 0) {
+			return;
+		}
+
+		const deniedGrants = await this.prisma.grant.findMany({
+			where: {
+				userId: targetUserId,
+				mode: GrantMode.deny,
+				resourceId: { in: ancestors.map((ancestor) => ancestor.id) }
+			},
+			select: { resourceId: true }
+		});
+		const deniedResourceIds = new Set(deniedGrants.map((grant) => grant.resourceId));
+		const deniedAncestor = [...ancestors].reverse().find((ancestor) =>
+			deniedResourceIds.has(ancestor.id)
+		);
+
+		if (!deniedAncestor) {
+			return;
+		}
+
+		throw new ConflictException({
+			code: ErrorCode.Conflict,
+			message: `${targetUserName} is explicitly denied on ${deniedAncestor.name}. Remove that deny before granting access here.`
+		});
 	}
 
 	async deleteGrant(
@@ -548,7 +588,7 @@ export class ContainersService {
 	private async findUserOrThrow(id: string) {
 		const user = await this.prisma.user.findUnique({
 			where: { id },
-			select: { id: true }
+			select: { id: true, name: true }
 		});
 
 		if (!user) {
@@ -557,5 +597,7 @@ export class ContainersService {
 				message: "User not found."
 			});
 		}
+
+		return user;
 	}
 }

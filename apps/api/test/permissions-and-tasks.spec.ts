@@ -328,6 +328,83 @@ describe("Backend permissions and task workflows", () => {
 			expect(names).not.toContain("Web App");
 		});
 
+		it("reveals only the ancestor lineage for an explicitly allowed nested private list", async () => {
+			let folderId: string | null = null;
+			let allowedListId: string | null = null;
+			let siblingListId: string | null = null;
+			const suffix = Date.now();
+			const folderName = `Lineage Folder ${suffix}`;
+			const allowedListName = `Allowed Lineage List ${suffix}`;
+			const siblingListName = `Hidden Lineage Sibling ${suffix}`;
+
+			try {
+				const folder = await createContainer({
+					name: folderName,
+					type: "folder",
+					parentId: ids.engineering,
+					visibility: "private"
+				});
+				folderId = folder.id;
+
+				const allowedList = await createContainer({
+					name: allowedListName,
+					type: "list",
+					parentId: folderId,
+					visibility: "private"
+				});
+				allowedListId = allowedList.id;
+
+				const siblingList = await createContainer({
+					name: siblingListName,
+					type: "list",
+					parentId: folderId,
+					visibility: "private"
+				});
+				siblingListId = siblingList.id;
+
+				const grantResponse = await request(`/containers/${allowedListId}/grants/carol`, {
+					method: "PUT",
+					userId: "alice",
+					body: { mode: "allow" }
+				});
+				expect(grantResponse.status).toBe(HttpStatus.OK);
+
+				const response = await request<TreeNode[]>("/containers/tree", { userId: "carol" });
+				const names = flattenNames(response.body);
+				const folderNode = findTreeNode(response.body, folderId);
+
+				expect(response.status).toBe(HttpStatus.OK);
+				expect(names).toEqual(expect.arrayContaining([folderName, allowedListName]));
+				expect(names).not.toContain(siblingListName);
+				expect(folderNode?.children.map((child) => child.id)).toEqual([allowedListId]);
+
+				const folderResponse = await request<ContainerBody>(`/containers/${folderId}`, {
+					userId: "carol"
+				});
+				expect(folderResponse.status).toBe(HttpStatus.OK);
+				expect(folderResponse.body).toMatchObject({ id: folderId });
+			} finally {
+				if (allowedListId) {
+					await request(`/containers/${allowedListId}/grants/carol`, {
+						method: "DELETE",
+						userId: "alice"
+					});
+				}
+
+				if (siblingListId) {
+					await deleteContainer(siblingListId);
+				}
+
+				if (allowedListId) {
+					await deleteContainer(allowedListId);
+				}
+
+				if (folderId) {
+					await deleteContainer(folderId);
+				}
+			}
+		});
+
 		it("hides archived containers by default", async () => {
 			try {
 				const archiveResponse = await request(`/containers/${ids.backendBacklog}/archive`, {
@@ -382,6 +459,17 @@ describe("Backend permissions and task workflows", () => {
 			});
 
 			expectError(response, HttpStatus.FORBIDDEN, ErrorCode.Forbidden);
+		});
+
+		it("rejects descendant allow grants while an ancestor deny is still present", async () => {
+			const response = await request<ErrorBody>(`/containers/${ids.researchQueue}/grants/bob`, {
+				method: "PUT",
+				userId: "alice",
+				body: { mode: "allow" }
+			});
+
+			expectError(response, HttpStatus.CONFLICT, ErrorCode.Conflict);
+			expect(response.body.error.message).toContain("Bob Chen is explicitly denied on Product");
 		});
 	});
 

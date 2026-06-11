@@ -175,13 +175,53 @@ export class PermissionsService {
 			return false;
 		}
 
-		return path.every((container) => {
+		if (path.every((container) => {
 			if (container.visibility === "public") {
 				return true;
 			}
 
 			return grantsByResourceId.get(container.id)?.mode === "allow";
-		});
+		})) {
+			return true;
+		}
+
+		return this.hasAllowedDescendantPath(
+			containerId,
+			containerById,
+			grantsByResourceId,
+			includeArchived
+		);
+	}
+
+	private hasAllowedDescendantPath(
+		containerId: string,
+		containerById: Map<string, Container>,
+		grantsByResourceId: Map<string, Grant>,
+		includeArchived: boolean
+	): boolean {
+		for (const grant of grantsByResourceId.values()) {
+			if (grant.mode !== "allow") {
+				continue;
+			}
+
+			const grantedPath = this.getPath(grant.resourceId, containerById);
+
+			if (!grantedPath.some((container) => container.id === containerId)) {
+				continue;
+			}
+
+			if (!includeArchived && grantedPath.some((container) => container.isArchived)) {
+				continue;
+			}
+
+			if (grantedPath.some((container) => grantsByResourceId.get(container.id)?.mode === "deny")) {
+				continue;
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	private hasArchivedPath(containerId: string, containerById: Map<string, Container>): boolean {

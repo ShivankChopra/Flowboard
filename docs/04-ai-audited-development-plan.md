@@ -508,10 +508,12 @@ Permission semantics:
 
 - Admin users bypass all container visibility and deny rules.
 - Members can see public containers only if all ancestors are visible and no explicit deny exists on the path.
-- Members can see private containers only with an explicit allow and a visible ancestor path.
+- Members can see private containers with an explicit allow on that container, or as direct ancestor lineage for a descendant container with an explicit allow.
 - Explicit deny on any ancestor or the resource itself blocks access.
 - A descendant allow cannot override an ancestor deny.
-- Descendants of hidden parents are hidden.
+- The grant API rejects descendant `allow` grants when the same user has an ancestor `deny`; admins must remove the ancestor deny first.
+- Descendants are not made visible by a parent or sibling allow unless they independently satisfy the visibility rules.
+- Ancestor lineage visibility exists only to make granted nested containers reachable in the sidebar; it does not reveal siblings.
 - Archived containers are hidden by default; archived ancestors hide descendants.
 
 Implementation approach:

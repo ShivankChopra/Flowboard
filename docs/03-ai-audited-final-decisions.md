@@ -324,8 +324,9 @@ Tree visibility rules:
 
 - The tree API returns only nodes the current user can see.
 - A member can see a public container only if all ancestors are visible and no explicit deny blocks the path.
-- A member can see a private container only with an explicit allow and a visible ancestor path.
-- If a member cannot see a parent, descendants are hidden as well.
+- A member can see a private container with an explicit allow on that container, or as direct ancestor lineage for a descendant container with an explicit allow.
+- If a member is explicitly allowed to a nested container, the tree reveals only the direct parent chain needed to reach it.
+- Siblings of the allowed container remain hidden unless they independently satisfy the visibility rules.
 - This avoids orphaned folders/lists in the sidebar.
 
 Deny precedence:
@@ -333,6 +334,7 @@ Deny precedence:
 - Explicit `deny` always overrides public visibility and explicit `allow`.
 - A `deny` on any container in the path from workspace to the requested resource blocks access to that resource.
 - A parent `deny` hides the subtree even if a descendant has an explicit `allow`.
+- The API rejects descendant `allow` grants while an ancestor `deny` exists for the same user, so admins get a clear fix instead of creating ineffective grants.
 - Admin users bypass deny rules.
 
 Public/private consistency:
@@ -349,7 +351,8 @@ Changing visibility:
 - This operation does not automatically create `allow` grants.
 - Existing explicit grants remain unchanged.
 - Admin users must explicitly grant access after making a container private.
-- Granting access to a nested private container requires a visible path through its ancestors. In practice, this means the user needs access to each private ancestor, or access should be granted at an ancestor level.
+- Granting access to a nested private container implicitly reveals its direct ancestor lineage for navigation, but does not reveal siblings or descendants.
+- If the target user is explicitly denied on an ancestor, the admin must remove that deny before granting the nested container.
 - Making a container public is allowed only when all ancestors are public.
 - Making a container public does not automatically make descendants public.
 
