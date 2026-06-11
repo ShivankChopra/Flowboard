@@ -8,9 +8,13 @@ import {
 	Toolbar,
 	Typography,
 	useMediaQuery,
-	useTheme
+	useTheme,
 } from "@mui/material";
-import { useCallback, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+	useCallback,
+	useState,
+	type PointerEvent as ReactPointerEvent,
+} from "react";
 import { SidebarTree } from "../containers/SidebarTree";
 import { findContainer } from "../containers/tree-utils";
 import { useContainerTreeQuery } from "../containers/use-container-tree-query";
@@ -50,28 +54,32 @@ export function AppShell() {
 			window.addEventListener("pointermove", handlePointerMove);
 			window.addEventListener("pointerup", handlePointerUp);
 		},
-		[sidebarWidth]
+		[sidebarWidth],
 	);
 
 	return (
 		<Box
 			sx={{
 				display: "grid",
-				gridTemplateColumns: isWide ? `${sidebarWidth}px minmax(0, 1fr)` : "1fr",
+				gridTemplateColumns: isWide
+					? `${sidebarWidth}px minmax(0, 1fr)`
+					: "1fr",
 				minHeight: "100vh",
-				background: "linear-gradient(180deg, #fbfdff 0%, #f8fafc 48%, #f6f9fc 100%)"
+				background:
+					"linear-gradient(180deg, #fbfdff 0%, #f8fafc 48%, #f6f9fc 100%)",
 			}}
 		>
 			<Box
 				component="aside"
 				sx={{
-					background: "linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%)",
+					background:
+						"linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%)",
 					borderColor: "divider",
 					borderRight: isWide ? "1px solid" : 0,
 					borderBottom: isWide ? 0 : "1px solid",
 					minHeight: isWide ? "100vh" : "auto",
 					p: 2,
-					position: "relative"
+					position: "relative",
 				}}
 			>
 				<Box
@@ -86,8 +94,8 @@ export function AppShell() {
 						width: 8,
 						zIndex: 2,
 						"&:hover": {
-							bgcolor: "rgba(37, 99, 235, 0.12)"
-						}
+							bgcolor: "rgba(37, 99, 235, 0.12)",
+						},
 					}}
 				/>
 				<Stack gap={2}>
@@ -108,11 +116,12 @@ export function AppShell() {
 				<Toolbar
 					disableGutters
 					sx={{
-						background: "linear-gradient(180deg, #f3f7fb 0%, #eaf1f8 100%)",
+						background:
+							"linear-gradient(180deg, #f3f7fb 0%, #eaf1f8 100%)",
 						borderBottom: "1px solid",
 						borderColor: "divider",
 						minHeight: "64px !important",
-						px: { xs: 2, md: 3 }
+						px: { xs: 2, md: 3 },
 					}}
 				>
 					<Stack
@@ -126,7 +135,11 @@ export function AppShell() {
 							<Typography variant="h6" component="h2" noWrap>
 								{selectedList?.name ?? "Project workspace"}
 							</Typography>
-							<Typography variant="body2" color="text.secondary" noWrap>
+							<Typography
+								variant="body2"
+								color="text.secondary"
+								noWrap
+							>
 								{selectedList
 									? "Tasks and statuses for the selected list"
 									: "Select a list in the sidebar"}
@@ -167,14 +180,25 @@ export function AppShell() {
 								minHeight: 280,
 								justifyContent: "center",
 								p: 3,
-								textAlign: "center"
+								textAlign: "center",
 							}}
 						>
-							<Stack alignItems="center" gap={1.25} sx={{ maxWidth: 520 }}>
-								<ViewKanbanOutlinedIcon color="primary" sx={{ fontSize: 32 }} />
-								<Typography variant="h6">No list selected</Typography>
+							<Stack
+								alignItems="center"
+								gap={1.25}
+								sx={{ maxWidth: 520 }}
+							>
+								<ViewKanbanOutlinedIcon
+									color="primary"
+									sx={{ fontSize: 32 }}
+								/>
+								<Typography variant="h6">
+									No list selected
+								</Typography>
 								<Typography color="text.secondary">
-									Choose a visible list from the permission-filtered sidebar to set the active workspace context.
+									Choose a visible list from the
+									permission-filtered sidebar to set the
+									active workspace context.
 								</Typography>
 							</Stack>
 						</Box>
