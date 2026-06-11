@@ -106,6 +106,11 @@ export type UpdateContainerPayload = {
 	visibility?: ContainerVisibility;
 };
 
+export type ReorderContainerPayload = {
+	parentId: string;
+	orderedIds: string[];
+};
+
 export type CreateStatusPayload = {
 	listId: string;
 	key: string;
@@ -234,6 +239,18 @@ export function updateContainer(
 	return requestJson<Container>(`/containers/${containerId}`, {
 		userId,
 		method: "PATCH",
+		body: payload
+	});
+}
+
+export function reorderContainer(
+	userId: string,
+	containerId: string,
+	payload: ReorderContainerPayload
+): Promise<Container[]> {
+	return requestJson<Container[]>(`/containers/${containerId}/reorder`, {
+		userId,
+		method: "POST",
 		body: payload
 	});
 }

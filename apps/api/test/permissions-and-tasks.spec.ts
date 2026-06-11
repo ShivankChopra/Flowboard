@@ -6,9 +6,13 @@ import { ErrorCode } from "../src/common/errors/error-code";
 import { createValidationException } from "../src/common/validation/validation-exception.factory";
 
 const ids = {
+	workspace: "00000000-0000-4000-8000-000000000001",
 	engineering: "00000000-0000-4000-8000-000000000002",
+	q2Launch: "00000000-0000-4000-8000-000000000003",
 	backendBacklog: "00000000-0000-4000-8000-000000000004",
 	webApp: "00000000-0000-4000-8000-000000000005",
+	product: "00000000-0000-4000-8000-000000000006",
+	customerFeedback: "00000000-0000-4000-8000-000000000007",
 	researchQueue: "00000000-0000-4000-8000-000000000008",
 	statuses: {
 		backendBacklog: {
@@ -48,7 +52,17 @@ type ErrorBody = {
 type TreeNode = {
 	id: string;
 	name: string;
+	parentId: string | null;
+	visibility: "public" | "private";
 	children: TreeNode[];
+};
+
+type ContainerBody = {
+	id: string;
+	name: string;
+	parentId: string | null;
+	position: number;
+	visibility: "public" | "private";
 };
 
 type TaskBody = {
@@ -87,6 +101,7 @@ describe("Backend permissions and task workflows", () => {
 		await app.init();
 		await app.listen(0);
 		baseUrl = await app.getUrl();
+		await restoreSeedContainerLayout();
 	});
 
 	afterAll(async () => {
@@ -124,6 +139,22 @@ describe("Backend permissions and task workflows", () => {
 		return nodes.flatMap((node) => [node.name, ...flattenNames(node.children)]);
 	}
 
+	function findTreeNode(nodes: TreeNode[], nodeId: string): TreeNode | null {
+		for (const node of nodes) {
+			if (node.id === nodeId) {
+				return node;
+			}
+
+			const match = findTreeNode(node.children, nodeId);
+
+			if (match) {
+				return match;
+			}
+		}
+
+		return null;
+	}
+
 	function expectError(response: TestResponse, status: number, code: string) {
 		expect(response.status).toBe(status);
 		expect(response.body).toMatchObject({
@@ -132,6 +163,131 @@ describe("Backend permissions and task workflows", () => {
 				message: expect.any(String)
 			}
 		});
+	}
+
+	async function restoreSeedContainerLayout() {
+		const treeResponse = await request<TreeNode[]>("/containers/tree", {
+			userId: "alice"
+		});
+		expect(treeResponse.status).toBe(HttpStatus.OK);
+		const engineering = findTreeNode(treeResponse.body, ids.engineering);
+		const q2Launch = findTreeNode(treeResponse.body, ids.q2Launch);
+
+		expect(engineering).not.toBeNull();
+		expect(q2Launch).not.toBeNull();
+
+		const restoreEngineeringVisibilityResponse = await request<ContainerBody>(
+			`/containers/${ids.engineering}`,
+			{
+				method: "PATCH",
+				userId: "alice",
+				body: { visibility: "public" }
+			}
+		);
+		expect(restoreEngineeringVisibilityResponse.status).toBe(HttpStatus.OK);
+
+		const restoreProductVisibilityResponse = await request<ContainerBody>(
+			`/containers/${ids.product}`,
+			{
+				method: "PATCH",
+				userId: "alice",
+				body: { visibility: "public" }
+			}
+		);
+		expect(restoreProductVisibilityResponse.status).toBe(HttpStatus.OK);
+
+		const restoreQ2Response = await request<ContainerBody[]>(
+			`/containers/${ids.q2Launch}/reorder`,
+			{
+				method: "POST",
+				userId: "alice",
+				body: {
+					parentId: ids.engineering,
+					orderedIds: [
+						...(engineering?.children ?? [])
+							.map((child) => child.id)
+							.filter((childId) => childId !== ids.q2Launch),
+						ids.q2Launch
+					]
+				}
+			}
+		);
+		expect(restoreQ2Response.status).toBe(HttpStatus.CREATED);
+
+		const restoreQ2VisibilityResponse = await request<ContainerBody>(
+			`/containers/${ids.q2Launch}`,
+			{
+				method: "PATCH",
+				userId: "alice",
+				body: { visibility: "public" }
+			}
+		);
+		expect(restoreQ2VisibilityResponse.status).toBe(HttpStatus.OK);
+
+		const restoreBacklogResponse = await request<ContainerBody[]>(
+			`/containers/${ids.backendBacklog}/reorder`,
+			{
+				method: "POST",
+				userId: "alice",
+				body: {
+					parentId: ids.q2Launch,
+					orderedIds: [
+						ids.backendBacklog,
+						...(q2Launch?.children ?? [])
+							.map((child) => child.id)
+							.filter((childId) => childId !== ids.backendBacklog)
+					]
+				}
+			}
+		);
+		expect(restoreBacklogResponse.status).toBe(HttpStatus.CREATED);
+
+		const restoreBacklogVisibilityResponse = await request<ContainerBody>(
+			`/containers/${ids.backendBacklog}`,
+			{
+				method: "PATCH",
+				userId: "alice",
+				body: { visibility: "public" }
+			}
+		);
+		expect(restoreBacklogVisibilityResponse.status).toBe(HttpStatus.OK);
+	}
+
+	async function createContainer(
+		body: {
+			name: string;
+			type: "space" | "folder" | "list";
+			parentId: string;
+			visibility?: "public" | "private";
+		}
+	): Promise<ContainerBody> {
+		const response = await request<ContainerBody>("/containers", {
+			method: "POST",
+			userId: "alice",
+			body
+		});
+		expect(response.status).toBe(HttpStatus.CREATED);
+
+		return response.body;
+	}
+
+	async function deleteContainer(containerId: string): Promise<void> {
+		const response = await request(`/containers/${containerId}`, {
+			method: "DELETE",
+			userId: "alice"
+		});
+		expect(response.status).toBe(HttpStatus.NO_CONTENT);
+	}
+
+	async function childIdsFor(parentId: string): Promise<string[]> {
+		const treeResponse = await request<TreeNode[]>("/containers/tree", {
+			userId: "alice"
+		});
+		expect(treeResponse.status).toBe(HttpStatus.OK);
+		const parent = findTreeNode(treeResponse.body, parentId);
+
+		expect(parent).not.toBeNull();
+		return parent?.children.map((child) => child.id) ?? [];
 	}
 
 	describe("tree permission filtering", () => {
@@ -260,6 +416,180 @@ describe("Backend permissions and task workflows", () => {
 					method: "DELETE",
 					userId: "alice"
 				});
+			}
+		});
+	});
+
+	describe("container move and reorder", () => {
+		it("lets Alice move a folder between valid parent spaces", async () => {
+			let folderId: string | null = null;
+
+			try {
+				const folder = await createContainer({
+					name: `Move Test Folder ${Date.now()}`,
+					type: "folder",
+					parentId: ids.engineering,
+					visibility: "public"
+				});
+				folderId = folder.id;
+				const productChildIds = await childIdsFor(ids.product);
+
+				const response = await request<ContainerBody[]>(`/containers/${folderId}/reorder`, {
+					method: "POST",
+					userId: "alice",
+					body: {
+						parentId: ids.product,
+						orderedIds: [...productChildIds, folderId]
+					}
+				});
+
+				expect(response.status).toBe(HttpStatus.CREATED);
+				expect(response.body.map((container) => container.id)).toEqual([
+					...productChildIds,
+					folderId
+				]);
+				expect(response.body.find((container) => container.id === folderId)).toMatchObject({
+					parentId: ids.product,
+					position: productChildIds.length
+				});
+
+				const movedContainerResponse = await request<ContainerBody>(
+					`/containers/${folderId}`,
+					{ userId: "alice" }
+				);
+				expect(movedContainerResponse.status).toBe(HttpStatus.OK);
+				expect(movedContainerResponse.body).toMatchObject({
+					parentId: ids.product,
+					visibility: "public"
+				});
+
+				const bobTreeResponse = await request<TreeNode[]>("/containers/tree", {
+					userId: "bob"
+				});
+				expect(bobTreeResponse.status).toBe(HttpStatus.OK);
+				expect(flattenNames(bobTreeResponse.body)).not.toContain(folder.name);
+			} finally {
+				if (folderId) {
+					await deleteContainer(folderId);
+				}
+			}
+		});
+
+		it("makes a moved public subtree private when the target parent path is private", async () => {
+			let listId: string | null = null;
+			let listName: string | null = null;
+
+			try {
+				const list = await createContainer({
+					name: `Private Move Test List ${Date.now()}`,
+					type: "list",
+					parentId: ids.q2Launch,
+					visibility: "public"
+				});
+				listId = list.id;
+				listName = list.name;
+				const customerFeedbackChildIds = await childIdsFor(ids.customerFeedback);
+
+				const response = await request<ContainerBody[]>(
+					`/containers/${listId}/reorder`,
+					{
+						method: "POST",
+						userId: "alice",
+						body: {
+							parentId: ids.customerFeedback,
+							orderedIds: [...customerFeedbackChildIds, listId]
+						}
+					}
+				);
+
+				expect(response.status).toBe(HttpStatus.CREATED);
+				expect(response.body.find((container) => container.id === listId)).toMatchObject({
+					parentId: ids.customerFeedback,
+					position: customerFeedbackChildIds.length,
+					visibility: "private"
+				});
+
+				const movedContainerResponse = await request<ContainerBody>(
+					`/containers/${listId}`,
+					{ userId: "alice" }
+				);
+				expect(movedContainerResponse.status).toBe(HttpStatus.OK);
+				expect(movedContainerResponse.body).toMatchObject({
+					parentId: ids.customerFeedback,
+					visibility: "private"
+				});
+
+				const carolTreeResponse = await request<TreeNode[]>("/containers/tree", {
+					userId: "carol"
+				});
+				expect(carolTreeResponse.status).toBe(HttpStatus.OK);
+				expect(flattenNames(carolTreeResponse.body)).not.toContain(listName);
+			} finally {
+				if (listId) {
+					await deleteContainer(listId);
+				}
+			}
+		});
+
+		it("rejects moving a list under another list", async () => {
+			let listId: string | null = null;
+
+			try {
+				const list = await createContainer({
+					name: `Invalid Move Test List ${Date.now()}`,
+					type: "list",
+					parentId: ids.q2Launch,
+					visibility: "public"
+				});
+				listId = list.id;
+
+				const response = await request<ErrorBody>(
+					`/containers/${listId}/reorder`,
+					{
+						method: "POST",
+						userId: "alice",
+						body: {
+							parentId: ids.webApp,
+							orderedIds: [listId]
+						}
+					}
+				);
+
+				expectError(response, HttpStatus.BAD_REQUEST, ErrorCode.ValidationError);
+			} finally {
+				if (listId) {
+					await deleteContainer(listId);
+				}
+			}
+		});
+
+		it("returns 403 when a member tries to move a container", async () => {
+			let folderId: string | null = null;
+
+			try {
+				const folder = await createContainer({
+					name: `Member Move Test Folder ${Date.now()}`,
+					type: "folder",
+					parentId: ids.engineering,
+					visibility: "public"
+				});
+				folderId = folder.id;
+				const productChildIds = await childIdsFor(ids.product);
+
+				const response = await request<ErrorBody>(`/containers/${folderId}/reorder`, {
+					method: "POST",
+					userId: "bob",
+					body: {
+						parentId: ids.product,
+						orderedIds: [...productChildIds, folderId]
+					}
+				});
+
+				expectError(response, HttpStatus.FORBIDDEN, ErrorCode.Forbidden);
+			} finally {
+				if (folderId) {
+					await deleteContainer(folderId);
+				}
 			}
 		});
 	});

@@ -163,33 +163,80 @@ export class ContainersService {
 			});
 		}
 
-		const parent = await this.findContainerOrThrow(dto.parentId);
+		const movingContainer = await this.findContainerOrThrow(id);
+		const targetParent = await this.findContainerOrThrow(dto.parentId);
+		const expectedParentType = allowedParentType[movingContainer.type];
 
-		if (parent.type === ContainerType.list) {
+		if (!expectedParentType) {
 			throw new BadRequestException({
 				code: ErrorCode.ValidationError,
-				message: "Lists cannot have child containers."
+				message: "Workspace containers cannot be moved."
 			});
 		}
 
-		const siblings = await this.prisma.container.findMany({
+		if (targetParent.type !== expectedParentType) {
+			throw new BadRequestException({
+				code: ErrorCode.ValidationError,
+				message: `${movingContainer.type} containers must be moved under ${expectedParentType} containers.`
+			});
+		}
+
+		if (targetParent.isArchived) {
+			throw new BadRequestException({
+				code: ErrorCode.ValidationError,
+				message: "Cannot move a container under an archived parent."
+			});
+		}
+
+		const targetParentPath = await this.loadAncestorPath(dto.parentId);
+
+		if (targetParentPath.some((container) => container.id === id)) {
+			throw new BadRequestException({
+				code: ErrorCode.ValidationError,
+				message: "Cannot move a container into its own subtree."
+			});
+		}
+
+		const isParentChanged = movingContainer.parentId !== dto.parentId;
+		const targetSiblings = await this.prisma.container.findMany({
 			where: { parentId: dto.parentId },
 			orderBy: { position: "asc" }
 		});
-		const siblingIds = siblings.map((sibling) => sibling.id);
-		const requestedIds = new Set(dto.orderedIds);
+		const expectedTargetIds = isParentChanged
+			? [...targetSiblings.map((sibling) => sibling.id), id]
+			: targetSiblings.map((sibling) => sibling.id);
 
-		if (
-			siblingIds.length !== dto.orderedIds.length ||
-			siblingIds.some((siblingId) => !requestedIds.has(siblingId))
-		) {
+		if (!this.hasSameIds(dto.orderedIds, expectedTargetIds)) {
 			throw new BadRequestException({
 				code: ErrorCode.ValidationError,
-				message: "orderedIds must contain every sibling under the requested parent."
+				message: "orderedIds must contain every child under the target parent, including the moved container."
 			});
 		}
 
+		const shouldMakeSubtreePrivate =
+			isParentChanged &&
+			targetParentPath.some(
+				(container) => container.visibility === ContainerVisibility.private
+			);
+
 		const reordered = await this.prisma.$transaction(async (tx) => {
+			if (isParentChanged) {
+				await tx.container.update({
+					where: { id },
+					data: { parentId: dto.parentId }
+				});
+
+				const sourceSiblings = await tx.container.findMany({
+					where: { parentId: movingContainer.parentId },
+					orderBy: { position: "asc" }
+				});
+
+				await this.rewriteSiblingPositions(
+					sourceSiblings.map((sibling) => sibling.id),
+					tx
+				);
+			}
+
 			await Promise.all(
 				dto.orderedIds.map((containerId, position) =>
 					tx.container.update({
@@ -198,6 +245,14 @@ export class ContainersService {
 					})
 				)
 			);
+
+			if (shouldMakeSubtreePrivate) {
+				const subtreeIds = await this.collectSubtreeIds(id, tx);
+				await tx.container.updateMany({
+					where: { id: { in: subtreeIds } },
+					data: { visibility: ContainerVisibility.private }
+				});
+			}
 
 			return tx.container.findMany({
 				where: { parentId: dto.parentId },
@@ -446,6 +501,35 @@ export class ContainersService {
 		}
 
 		return ids;
+	}
+
+	private hasSameIds(firstIds: string[], secondIds: string[]): boolean {
+		if (firstIds.length !== secondIds.length) {
+			return false;
+		}
+
+		const firstSet = new Set(firstIds);
+		const secondSet = new Set(secondIds);
+
+		if (firstSet.size !== firstIds.length || secondSet.size !== secondIds.length) {
+			return false;
+		}
+
+		return secondIds.every((id) => firstSet.has(id));
+	}
+
+	private async rewriteSiblingPositions(
+		orderedIds: string[],
+		tx: Prisma.TransactionClient
+	): Promise<void> {
+		await Promise.all(
+			orderedIds.map((containerId, position) =>
+				tx.container.update({
+					where: { id: containerId },
+					data: { position }
+				})
+			)
+		);
 	}
 
 	private async findContainerOrThrow(id: string) {
