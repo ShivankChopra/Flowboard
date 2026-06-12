@@ -1,6 +1,6 @@
 # AI Usage Log
 
-This document details how AI assistance was leveraged during the planning, implementation, and documentation phases of Flowboard. It outlines where the tools accelerated development and where engineering judgment was used to override, correct, or reject AI outputs.
+This document details how AI assistance (Codex 5.5 High) was leveraged during the planning, implementation, and documentation phases of Flowboard. It outlines where the tools accelerated development and where engineering judgment was used to override, correct, or reject AI outputs.
 
 ---
 
