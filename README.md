@@ -6,6 +6,22 @@ The app is intentionally scoped for evaluator clarity: one workspace, three seed
 
 Feel free to checkout live demo hosted on Render here -> https://flowboard-rzw6.onrender.com
 
+## Table Of Contents
+
+- [What Is Included](#what-is-included)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Run Locally](#run-locally)
+- [Seeded Demo Data](#seeded-demo-data)
+- [Architecture](#architecture)
+- [Data Model](#data-model)
+- [Permissions](#permissions)
+- [API Overview](#api-overview)
+- [Tests](#tests)
+- [Stretch Goals Completed](#stretch-goals-completed)
+- [Trade-Offs And Week-2 Work](#trade-offs-and-week-2-work)
+- [AI Usage](#ai-usage)
+
 ## What Is Included
 
 - Workspace hierarchy: `workspace -> space -> folder -> list -> tasks`.
