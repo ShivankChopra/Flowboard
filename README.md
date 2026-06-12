@@ -5,6 +5,7 @@ Flowboard is a single-workspace project-management MVP built for the take-home a
 The app is intentionally scoped for evaluator clarity: one workspace, three seeded users, mock header-based auth, explicit REST APIs, checked-in PostgreSQL migrations, and focused tests around the riskiest behavior.
 
 Feel free to checkout live demo hosted on Render here -> https://flowboard-rzw6.onrender.com
+Short youtube video demo showcasing basic navigations, permissions, etc -> https://youtu.be/_k-0cnKOBT4  
 
 ## Table Of Contents
 
