@@ -24,6 +24,8 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB in .env}?schema=public
       PORT: ${PORT:-3000}
+      ENABLE_DEMO_SEED: ${ENABLE_DEMO_SEED:-true}
+    command: sh -c "npm --workspace apps/api run prisma:migrate:deploy && npm --workspace apps/api run start:dev"
     ports:
       - "3000:3000"
     volumes:
